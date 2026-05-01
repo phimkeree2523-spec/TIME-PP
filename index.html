@@ -1144,7 +1144,7 @@ self.addEventListener('fetch',e=>{
     document.head.appendChild(s);
   }
 
-  $('import-file').addEventListener('change',function(){
+    $('import-file').addEventListener('change',function(){
     var file=this.files[0];if(!file)return;
     var ext=file.name.split('.').pop().toLowerCase();
     this.value=''; // reset so same file can be picked again
