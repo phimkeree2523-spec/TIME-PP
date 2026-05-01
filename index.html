@@ -233,22 +233,13 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
     <span class="ctitle">ข้อมูลทั่วไป</span>
   </div>
   <div class="cbody">
-    <div class="frow">
-      <div class="field">
+    <div class="field">
         <label>ชื่อทีม</label>
         <div class="nwrap" style="position:relative">
           <input type="text" id="team-name" placeholder="เช่น ทีม A" autocomplete="off"/>
           <div class="dd" id="dd-team" style="z-index:400"></div>
         </div>
       </div>
-      <div class="field">
-        <label style="display:flex;justify-content:space-between;align-items:center">
-          วันที่
-          <span id="today-badge" style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green-txt);padding:.1rem .45rem;border-radius:999px;letter-spacing:.2px">วันนี้ ✓</span>
-        </label>
-        <input type="number" id="work-day" min="1" max="31" placeholder="วัน" style="width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none"/>
-      </div>
-    </div>
     <div class="field"><label>สถานที่</label><input type="text" id="work-site" placeholder="โครงการ..."/></div>
   </div>
 </div>
@@ -371,6 +362,13 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
         </div>
       </div>
       <div id="sheet-result" class="sheet-result"></div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
+        <label style="font-size:13px;font-weight:500;color:var(--text2);white-space:nowrap">วันที่</label>
+        <div style="position:relative;flex:1">
+          <input type="number" id="work-day" min="1" max="31" placeholder="วัน" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none"/>
+        </div>
+        <span id="today-badge" style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green-txt);padding:.2rem .55rem;border-radius:999px;white-space:nowrap">วันนี้ ✓</span>
+      </div>
       <button class="bgsheet" id="btn-gsheet">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
         💾 บันทึก PNG + Google Sheet
@@ -1144,7 +1142,7 @@ self.addEventListener('fetch',e=>{
     document.head.appendChild(s);
   }
 
-    $('import-file').addEventListener('change',function(){
+  $('import-file').addEventListener('change',function(){
     var file=this.files[0];if(!file)return;
     var ext=file.name.split('.').pop().toLowerCase();
     this.value=''; // reset so same file can be picked again
