@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
@@ -367,7 +366,7 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
       <div id="sheet-result" class="sheet-result"></div>
       <button class="bgsheet" id="btn-gsheet">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-        บันทึกลง Google Sheet
+        💾 บันทึก PNG + Google Sheet
       </button>
     </div>
   </div>
@@ -719,30 +718,22 @@ self.addEventListener('fetch',e=>{
     showToast('ล้างข้อมูลแล้ว');
   });
 
-  // ── Export PNG ──
-  function fmtDate(d){
-    if(!d)return'-';
-    const[y,mo,dy]=d.split('-');
-    const ms=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-    return`${parseInt(dy)} ${ms[parseInt(mo)-1]} ${parseInt(y)+543}`;
-  }
-
-  $('bexp').addEventListener('click',()=>{
+  // ── Build PNG canvas → returns {cv, filename, team} ──
+  function buildCanvas(){
     const team=gv('team-name')||'ทีม';
-    const site=gv('work-site')||'-',day=gv('work-day')||new Date().getDate();
+    const site=gv('work-site')||'-';
+    const day=gv('work-day')||new Date().getDate();
     const now2=new Date();
     const ms2=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
     const dateLabel=`${day} ${ms2[now2.getMonth()]} ${now2.getFullYear()+543}`;
     const present=members.filter(m=>m.status==='present').length;
     const absent=members.filter(m=>m.status!=='present').length;
     const totalOT=members.reduce((s,m)=>s+(parseFloat(m.ot)||0),0);
-
     const hasGPS=!!(gpsData&&gpsData.lat);
     const ROW_H=38,W=720;
     const GPS_H=hasGPS?78:0;
     const HDR=236+GPS_H;
     const H=HDR+Math.max(members.length,1)*ROW_H+100;
-
     const cv=$('ec');cv.width=W;cv.height=H;
     const ctx=cv.getContext('2d');
     const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
@@ -757,19 +748,16 @@ self.addEventListener('fetch',e=>{
     const red=dark?'#3a1a1a':'#FCEBEB',redT=dark?'#e27070':'#A32D2D';
     const amb=dark?'#3a2a10':'#FAEEDA',ambT=dark?'#d4a040':'#854F0B';
     const gpsBg=dark?'#1a2d48':'#F0F6FF';
-
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     ctx.fillStyle=acc;ctx.fillRect(0,0,W,8);
     ctx.fillStyle=accL;ctx.fillRect(0,8,W,90);
     ctx.fillStyle=acc;ctx.font='bold 24px sans-serif';ctx.fillText('บันทึกเวลาทำงานทีม',28,50);
     ctx.fillStyle=fg2;ctx.font='400 14px sans-serif';ctx.fillText(team,28,76);
-
     const iy=118;
     [[site,'สถานที่ทำงาน',28],[dateLabel,'วันที่',210],[`${present} คน`,'มาทำงาน',380],[`${totalOT%1===0?totalOT:totalOT.toFixed(1)} ชม.`,'รวมโอที',540]].forEach(([v,l,x])=>{
       ctx.fillStyle=fg2;ctx.font='400 11px sans-serif';ctx.fillText(l,x,iy);
       ctx.fillStyle=fg;ctx.font='600 16px sans-serif';ctx.fillText(v,x,iy+20);
     });
-
     let curY=160;
     if(hasGPS){
       ctx.fillStyle=gpsBg;
@@ -784,24 +772,18 @@ self.addEventListener('fetch',e=>{
       const addr=gpsData.addr||`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}`;
       ctx.fillStyle=fg;ctx.font='400 12px sans-serif';
       const maxW=W-120;const words=addr.split(' ');let line='';let ay=curY+50;
-      for(const w of words){
-        const test=line?line+' '+w:w;
-        if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line,58,ay);line=w;ay+=16;}
-        else line=test;
-      }
+      for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line,58,ay);line=w;ay+=16;}else line=test;}
       if(line)ctx.fillText(line,58,ay);
       ctx.fillStyle=fg2;ctx.font='400 11px sans-serif';
       ctx.fillText(`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}  (±${gpsData.acc}ม.)`,W-250,curY+17);
       curY+=GPS_H;
     }
-
     ctx.fillStyle=brd;ctx.fillRect(0,curY+10,W,1);
     const hdrBase=curY+14;
     const hx=[28,72,460,600];
     ctx.fillStyle=fg2;ctx.font='600 11px sans-serif';
     ['#','ชื่อ-นามสกุล','สถานะ','โอที'].forEach((h,i)=>ctx.fillText(h,hx[i],hdrBase));
     ctx.fillStyle=brd;ctx.fillRect(0,hdrBase+6,W,1);
-
     members.forEach((m,i)=>{
       const ry=hdrBase+8+i*ROW_H,ty=ry+ROW_H/2+6;
       ctx.fillStyle=i%2===0?rowE:bg;ctx.fillRect(0,ry,W,ROW_H);
@@ -815,39 +797,47 @@ self.addEventListener('fetch',e=>{
       ctx.fillStyle=ot>0?acc:fg2;ctx.font=ot>0?'600 14px sans-serif':'400 14px sans-serif';
       ctx.fillText(ot>0?(ot%1===0?ot:ot.toFixed(1))+' ชม.':'-',hx[3],ty);
     });
-
     const fy=hdrBase+8+Math.max(members.length,1)*ROW_H+16;
     ctx.fillStyle=brd;ctx.fillRect(0,fy,W,1);
     ctx.fillStyle=fg2;ctx.font='400 12px sans-serif';
     ctx.fillText(`ทีม: ${team}   |   มา ${present} คน   ขาด/ลา ${absent} คน   โอทีรวม ${totalOT%1===0?totalOT:totalOT.toFixed(1)} ชั่วโมง`,28,fy+20);
     const now=new Date();
     ctx.fillText(`พิมพ์เมื่อ: ${now.toLocaleDateString('th-TH')} ${now.toLocaleTimeString('th-TH')}`,W-200,fy+20);
+    // ชื่อไฟล์: วันที่_เดือน_ปี_ชื่อทีม.png
+    const teamSafe=team.replace(/[\/\\:*?"<>|]/g,'_');
+    const filename=`${day}_${ms2[now2.getMonth()]}_${now2.getFullYear()+543}_${teamSafe}.png`;
+    return {cv,filename,team};
+  }
 
+  // ── Reset members (keep roster/GPS/team/site) ──
+  function resetMembers(){
+    members=[];seq=0;
+    addMember('','present',0);addMember('','present',0);addMember('','present',0);
+    $('prev-wrap').style.display='none';
+    $('dlk').style.display='none';
+    scheduleSave();
+  }
+
+  // ── Preview PNG only (ปุ่มส่งออกภาพ) ──
+  $('bexp').addEventListener('click',()=>{
+    const {cv,filename,team}=buildCanvas();
     $('prev-wrap').style.display='block';
     const dl=$('dlk');
     dl.href=cv.toDataURL('image/png');
-    dl.download=`เวลาทำงาน_${team}_${gv('work-day')||'nodate'}.png`;
+    dl.download=filename;
     dl.style.display='flex';
-
-    // Mobile share
     cv.toBlob(blob=>{
-      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],'attendance.png',{type:'image/png'})]})){
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],filename,{type:'image/png'})]})){
         dl.onclick=async(e)=>{
           e.preventDefault();
-          try{
-            await navigator.share({files:[new File([blob],'attendance.png',{type:'image/png'})],title:'บันทึกเวลาทำงาน',text:team});
-          }catch(err){
-            if(err.name!=='AbortError'){
-              const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download=dl.download;a.click();
-            }
-          }
+          try{await navigator.share({files:[new File([blob],filename,{type:'image/png'})],title:'บันทึกเวลาทำงาน',text:team});}
+          catch(err){if(err.name!=='AbortError'){const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download=filename;a.click();}}
         };
         dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>แชร์ภาพ PNG`;
       }else{
         dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด / แชร์ภาพ PNG`;
       }
     },'image/png');
-
     showToast('สร้างภาพสำเร็จ');
     setTimeout(()=>$('prev-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
   });
@@ -927,7 +917,7 @@ self.addEventListener('fetch',e=>{
   });
   loadCfg();
 
-  // ── Send to Google Sheet (GET + query string, no-cors friendly) ──
+  // ── บันทึกพร้อมกัน: PNG + Google Sheet → ล้างรายชื่อทีมงาน ──
   $('btn-gsheet').addEventListener('click',async()=>{
     const cfg=JSON.parse(localStorage.getItem(GAS_KEY)||'{}');
     if(!cfg.url){
@@ -935,48 +925,66 @@ self.addEventListener('fetch',e=>{
       showToast('กรุณาตั้งค่า URL ก่อน');
       return;
     }
+    const allFilled=members.some(m=>m.name.trim());
+    if(!allFilled){showToast('กรุณากรอกรายชื่อก่อนบันทึก');return;}
+
+    const btn=$('btn-gsheet');
+    const res=$('sheet-result');
+    btn.disabled=true;
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>กำลังบันทึก...`;
+    res.className='sheet-result';res.style.display='none';
+
+    // ① สร้างภาพ PNG แล้วดาวน์โหลดทันที
+    const {cv,filename,team}=buildCanvas();
+    cv.toBlob(blob=>{
+      const pngFile=new File([blob],filename,{type:'image/png'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[pngFile]})){
+        navigator.share({files:[pngFile],title:'บันทึกเวลาทำงาน',text:team}).catch(()=>{});
+      }else{
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=filename;
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+      }
+    },'image/png');
+
+    // ② ส่ง Google Sheet
     const teamName=gv('team-name')||'-';
     const workSite=gv('work-site')||'-';
     const workDay=gv('work-day')||new Date().getDate();
     const workDate=String(workDay);
     const sheetName=cfg.sheet||'Sheet1';
+    const presentMembers=members.filter(m=>m.status==='present'&&m.name.trim());
 
-    const presentMembers=members.filter(m=>m.status==='present');
-    if(presentMembers.length===0){
-      showToast('ไม่มีรายชื่อที่มาทำงาน');
-      return;
-    }
-
-    const btn=$('btn-gsheet');
-    const res=$('sheet-result');
-    btn.disabled=true;
-    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>กำลังส่งข้อมูล...`;
-    res.className='sheet-result';res.style.display='none';
-
-    try{
-      // ส่งแบบ GET query string ทีละแถว (วิธีเดียวที่ทำงานกับ GAS no-cors จริงๆ)
-      const sends=presentMembers.map(m=>{
-        const params=new URLSearchParams({
-          sheet: sheetName,
-          date: workDate,
-          name: m.name||'-',
-          ot: parseFloat(m.ot)||0,
-          group: teamName,
-          site: workSite
+    let sheetOk=true;
+    if(presentMembers.length>0){
+      try{
+        const sends=presentMembers.map(m=>{
+          const params=new URLSearchParams({sheet:sheetName,date:workDate,name:m.name||'-',ot:parseFloat(m.ot)||0,group:teamName,site:workSite});
+          return fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
         });
-        return fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
-      });
-      await Promise.all(sends);
+        await Promise.all(sends);
+        res.className='sheet-result ok';
+        res.textContent=`✓ บันทึก ${presentMembers.length} คน วันที่ ${workDate} — ดาวน์โหลดภาพ PNG แล้ว`;
+      }catch(err){
+        sheetOk=false;
+        res.className='sheet-result err';
+        res.textContent='ส่ง Sheet ไม่ได้: ตรวจสอบ URL และอินเทอร์เน็ต (ภาพ PNG ดาวน์โหลดแล้ว)';
+      }
+    }else{
       res.className='sheet-result ok';
-      res.textContent=`✓ ส่งข้อมูล ${presentMembers.length} คน วันที่ ${workDate} สำเร็จ`;
-      showToast('บันทึกลง Google Sheet สำเร็จ ✓');
-    }catch(err){
-      res.className='sheet-result err';
-      res.textContent='เชื่อมต่อไม่ได้: ตรวจสอบ URL และอินเทอร์เน็ต';
-      showToast('เชื่อมต่อไม่ได้');
+      res.textContent=`✓ ดาวน์โหลดภาพ PNG แล้ว (ไม่มีรายชื่อ "มา" สำหรับ Sheet)`;
     }
+
     btn.disabled=false;
-    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>บันทึกลง Google Sheet`;
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>💾 บันทึก PNG + Google Sheet`;
+
+    // ③ ล้างรายชื่อทีมงาน เริ่มรอบใหม่
+    setTimeout(()=>{
+      resetMembers();
+      window.scrollTo({top:0,behavior:'smooth'});
+    },1200);
   });
   // ── Team-name dropdown ──
   const TEAM_KEY='attendance_teams';
