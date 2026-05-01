@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
@@ -719,6 +718,44 @@ self.addEventListener('fetch',e=>{
     showToast('ล้างข้อมูลแล้ว');
   });
 
+  // ── Save PNG — เลือกตำแหน่งบันทึกได้บน Desktop Chrome/Edge ──
+  async function savePNG(blob, filename, team){
+    // 1) File System Access API (Chrome/Edge desktop) → เปิด dialog เลือก folder
+    if(window.showSaveFilePicker){
+      try{
+        const fh=await window.showSaveFilePicker({
+          suggestedName: filename,
+          types:[{description:'PNG Image',accept:{'image/png':['.png']}}]
+        });
+        const writable=await fh.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        showToast('บันทึกภาพสำเร็จ ✓');
+        return;
+      }catch(err){
+        if(err.name==='AbortError')return; // ผู้ใช้กด Cancel
+        // fallthrough ถ้า API error
+      }
+    }
+    // 2) Web Share API (มือถือ)
+    const pngFile=new File([blob],filename,{type:'image/png'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[pngFile]})){
+      try{
+        await navigator.share({files:[pngFile],title:'บันทึกเวลาทำงาน',text:team});
+        return;
+      }catch(err){
+        if(err.name==='AbortError')return;
+      }
+    }
+    // 3) fallback: download ปกติ (บันทึกใน Downloads)
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    showToast('บันทึกภาพใน Downloads แล้ว');
+  }
+
   // ── Build PNG canvas → returns {cv, filename, team} ──
   function buildCanvas(){
     const team=gv('team-name')||'ทีม';
@@ -827,19 +864,12 @@ self.addEventListener('fetch',e=>{
     dl.href=cv.toDataURL('image/png');
     dl.download=filename;
     dl.style.display='flex';
-    cv.toBlob(blob=>{
-      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],filename,{type:'image/png'})]})){
-        dl.onclick=async(e)=>{
-          e.preventDefault();
-          try{await navigator.share({files:[new File([blob],filename,{type:'image/png'})],title:'บันทึกเวลาทำงาน',text:team});}
-          catch(err){if(err.name!=='AbortError'){const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download=filename;a.click();}}
-        };
-        dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>แชร์ภาพ PNG`;
-      }else{
-        dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด / แชร์ภาพ PNG`;
-      }
+    cv.toBlob(async blob=>{
+      await savePNG(blob,filename,team);
+      dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด / บันทึกภาพ PNG อีกครั้ง`;
+      dl.onclick=async(e)=>{e.preventDefault();cv.toBlob(async b=>await savePNG(b,filename,team),'image/png');};
+      dl.style.display='flex';
     },'image/png');
-    showToast('สร้างภาพสำเร็จ');
     setTimeout(()=>$('prev-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
   });
 
@@ -868,19 +898,23 @@ self.addEventListener('fetch',e=>{
   const GAS_CODE=`function doGet(e) {
   try {
     var p = e.parameter;
-    var sheetName = p.sheet || 'Sheet1';
+    // ใช้ชื่อทีม (group) เป็นชื่อ sheet อัตโนมัติ ถ้าไม่ได้ระบุ sheet ไว้
+    var sheetName = p.sheet && p.sheet !== 'Sheet1' ? p.sheet : (p.group || 'Sheet1');
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) sheet = ss.insertSheet(sheetName);
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['วันที่','','ชื่อสกุล','โอที','กลุ่ม','สถานที่']);
-      sheet.getRange(1,1,1,6)
+    // เช็คหัวคอลัมน์จากค่าเซลล์ A1 — ป้องกันหัวซ้ำทุกกรณี
+    var hasHeader = sheet.getRange(1,1).getValue() === 'วันที่';
+    if (!hasHeader) {
+      sheet.getRange(1,1).setValue('วันที่');
+      sheet.appendRow(['วันที่','ชื่อสกุล','โอที','กลุ่ม','สถานที่']);
+      sheet.getRange(1,1,1,5)
            .setFontWeight('bold')
            .setBackground('#1A5FAA')
            .setFontColor('#ffffff');
     }
-    // A=วันที่  B=ว่าง  C=ชื่อสกุล  D=โอที  E=กลุ่ม  F=สถานที่
-    sheet.appendRow([p.date, '', p.name, Number(p.ot)||0, p.group, p.site]);
+    // A=วันที่  B=ชื่อสกุล  C=โอที  D=กลุ่ม  E=สถานที่
+    sheet.appendRow([p.date, p.name, Number(p.ot)||0, p.group, p.site]);
     return ContentService
       .createTextOutput(JSON.stringify({status:'ok'}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -935,20 +969,9 @@ self.addEventListener('fetch',e=>{
     btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>กำลังบันทึก...`;
     res.className='sheet-result';res.style.display='none';
 
-    // ① สร้างภาพ PNG แล้วดาวน์โหลดทันที
+    // ① สร้างภาพ PNG — เปิด dialog เลือกที่บันทึก (Chrome/Edge) หรือ Share/Download
     const {cv,filename,team}=buildCanvas();
-    cv.toBlob(blob=>{
-      const pngFile=new File([blob],filename,{type:'image/png'});
-      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[pngFile]})){
-        navigator.share({files:[pngFile],title:'บันทึกเวลาทำงาน',text:team}).catch(()=>{});
-      }else{
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download=filename;
-        a.click();
-        setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-      }
-    },'image/png');
+    cv.toBlob(async blob=>{await savePNG(blob,filename,team);},'image/png');
 
     // ② ส่ง Google Sheet
     const teamName=gv('team-name')||'-';
@@ -961,8 +984,10 @@ self.addEventListener('fetch',e=>{
     let sheetOk=true;
     if(presentMembers.length>0){
       try{
+        // ถ้าไม่ได้ตั้งค่า sheet ไว้ ใช้ชื่อทีมเป็นชื่อ sheet อัตโนมัติ
+        const effectiveSheet = (cfg.sheet && cfg.sheet.trim()) ? cfg.sheet.trim() : teamName;
         const sends=presentMembers.map(m=>{
-          const params=new URLSearchParams({sheet:sheetName,date:workDate,name:m.name||'-',ot:parseFloat(m.ot)||0,group:teamName,site:workSite});
+          const params=new URLSearchParams({sheet:effectiveSheet,date:workDate,name:m.name||'-',ot:parseFloat(m.ot)||0,group:teamName,site:workSite});
           return fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
         });
         await Promise.all(sends);
