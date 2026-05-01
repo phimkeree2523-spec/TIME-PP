@@ -959,7 +959,7 @@ self.addEventListener('fetch',e=>{
   // ใช้ LockService ป้องกัน race condition เมื่อหลาย request มาพร้อมกัน
   var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
+    lock.waitLock(30000);
     var p = e.parameter;
     var sheetName = (p.sheet && p.sheet.trim() && p.sheet !== 'Sheet1')
                     ? p.sheet.trim()
@@ -969,14 +969,23 @@ self.addEventListener('fetch',e=>{
     if (!sheet) sheet = ss.insertSheet(sheetName);
     // เช็คหัวจากแถวแรกจริงๆ — สร้างครั้งเดียวเท่านั้น
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['วันที่','ชื่อสกุล','โอที','กลุ่ม','สถานที่']);
-      sheet.getRange(1,1,1,5)
+      sheet.appendRow(['วันที่','','ชื่อสกุล','โอที','กลุ่ม','สถานที่']);
+      sheet.getRange(1,1,1,6)
            .setFontWeight('bold')
            .setBackground('#1A5FAA')
            .setFontColor('#ffffff');
       SpreadsheetApp.flush();
     }
-    sheet.appendRow([p.date, p.name, Number(p.ot)||0, p.group, p.site]);
+    // รองรับทั้ง batch (names/ots) และ single (name/ot)
+    if (p.names) {
+      var names = p.names.split('|');
+      var ots   = p.ots ? p.ots.split('|') : [];
+      for (var i = 0; i < names.length; i++) {
+        sheet.appendRow([Number(p.date)||0, '', String(names[i]||'-'), Number(ots[i])||0, String(p.group||'-'), String(p.site||'-')]);
+      }
+    } else {
+      sheet.appendRow([Number(p.date)||0, '', String(p.name||'-'), Number(p.ot)||0, String(p.group||'-'), String(p.site||'-')]);
+    }
     SpreadsheetApp.flush();
     return ContentService
       .createTextOutput(JSON.stringify({status:'ok'}))
@@ -1041,7 +1050,7 @@ self.addEventListener('fetch',e=>{
     // ② ส่ง Google Sheet
     const teamName=gv('team-name')||'-';
     const workSite=gv('work-site')||'-';
-    const workDay=gv('work-day')||new Date().getDate();
+    const workDay=parseInt(gv('work-day'))||new Date().getDate();
     const workDate=String(workDay);
     const sheetName=cfg.sheet||'Sheet1';
     const presentMembers=members.filter(m=>m.status==='present'&&m.name.trim());
@@ -1049,12 +1058,18 @@ self.addEventListener('fetch',e=>{
     let sheetOk=true;
     if(presentMembers.length>0){
       try{
-        // ส่งทีละคนตามลำดับ (sequential) ป้องกัน race condition หัวซ้ำ
         const effectiveSheet = (cfg.sheet && cfg.sheet.trim()) ? cfg.sheet.trim() : teamName;
-        for(const m of presentMembers){
-          const params=new URLSearchParams({sheet:effectiveSheet,date:workDate,name:m.name||'-',ot:parseFloat(m.ot)||0,group:teamName,site:workSite});
-          await fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
-        }
+        // ใช้ script-tag injection — ทำงานได้กับ GAS redirect, ไม่ติด CORS
+        const names=presentMembers.map(m=>m.name||'-').join('|');
+        const ots=presentMembers.map(m=>parseFloat(m.ot)||0).join('|');
+        const params=new URLSearchParams({sheet:effectiveSheet,date:workDate,names,ots,group:teamName,site:workSite});
+        await new Promise((resolve,reject)=>{
+          const s=document.createElement('script');
+          s.src=`${cfg.url}?${params.toString()}`;
+          s.onload=s.onerror=()=>{s.remove();resolve();};
+          setTimeout(()=>{s.remove();resolve();},15000);
+          document.head.appendChild(s);
+        });
         res.className='sheet-result ok';
         res.textContent=`✓ บันทึก ${presentMembers.length} คน วันที่ ${workDate} — ดาวน์โหลดภาพ PNG แล้ว`;
       }catch(err){
@@ -1108,7 +1123,6 @@ self.addEventListener('fetch',e=>{
   });
   loadTeams();
 
-  
   // ── Import file ──
   function processNames(names){
     let added=0,dup=0;
