@@ -320,6 +320,10 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
   </div>
   <div id="mlist"></div>
   <button class="add-btn" id="badd">＋ เพิ่มรายชื่อ</button>
+  <button class="add-btn" id="btn-restore" style="display:none;border-color:var(--accent);color:var(--accent)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    กู้คืนรายชื่อรอบก่อน (<span id="restore-label">0 คน</span>)
+  </button>
 </div>
 
 <!-- สรุป + Export -->
@@ -847,14 +851,58 @@ self.addEventListener('fetch',e=>{
     return {cv,filename,team};
   }
 
+  // ── Snapshot ก่อน reset เพื่อกู้คืนได้ ──
+  const SNAPSHOT_KEY='attendance_snapshot_v1';
+  function saveSnapshot(){
+    try{
+      const snap={members:members.map(m=>({...m})),seq,savedAt:new Date().toISOString()};
+      localStorage.setItem(SNAPSHOT_KEY,JSON.stringify(snap));
+    }catch(e){}
+  }
+  function loadSnapshot(){
+    try{return JSON.parse(localStorage.getItem(SNAPSHOT_KEY)||'null');}
+    catch(e){return null;}
+  }
+  function updateRestoreBtn(){
+    const snap=loadSnapshot();
+    const btn=$('btn-restore');
+    const lbl=$('restore-label');
+    if(!btn)return;
+    if(snap&&snap.members&&snap.members.filter(m=>m.name.trim()).length>0){
+      const count=snap.members.filter(m=>m.name.trim()).length;
+      const when=snap.savedAt?new Date(snap.savedAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'';
+      lbl.textContent=`${count} คน${when?' เมื่อ '+when:''}`;
+      btn.style.display='flex';
+    }else{
+      btn.style.display='none';
+    }
+  }
+
   // ── Reset members (keep roster/GPS/team/site) ──
   function resetMembers(){
+    saveSnapshot(); // บันทึก snapshot ก่อนล้าง
     members=[];seq=0;
     addMember('','present',0);addMember('','present',0);addMember('','present',0);
     $('prev-wrap').style.display='none';
     $('dlk').style.display='none';
+    updateRestoreBtn();
     scheduleSave();
   }
+
+  // ── กู้คืนรายชื่อจาก snapshot ──
+  $('btn-restore').addEventListener('click',()=>{
+    const snap=loadSnapshot();
+    if(!snap||!snap.members||snap.members.length===0){showToast('ไม่มีข้อมูลรอบก่อน');return;}
+    const named=snap.members.filter(m=>m.name.trim());
+    if(named.length===0){showToast('ไม่มีรายชื่อในรอบก่อน');return;}
+    if(!confirm(`กู้คืน ${named.length} รายชื่อจากรอบก่อน?
+(รายชื่อปัจจุบันจะถูกแทนที่)`))return;
+    members=snap.members.map(m=>({...m}));
+    seq=snap.seq||members.reduce((mx,m)=>Math.max(mx,m.id||0),0);
+    render();
+    scheduleSave();
+    showToast(`กู้คืน ${named.length} รายชื่อแล้ว ✓`);
+  });
 
   // ── Preview PNG only (ปุ่มส่งออกภาพ) ──
   $('bexp').addEventListener('click',()=>{
@@ -1099,7 +1147,6 @@ self.addEventListener('fetch',e=>{
     }
   });
 
-  
   // ── Navigation helpers ──
   window.scrollToTop=()=>window.scrollTo({top:0,behavior:'smooth'});
   window.scrollToGPS=()=>document.querySelectorAll('.card')[1]?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -1108,6 +1155,7 @@ self.addEventListener('fetch',e=>{
 
   // ── Init ──
   $('work-day').value=new Date().getDate();
+  updateRestoreBtn();
   const loaded=loadData();
   if(!loaded||members.length===0){
     addMember('','present',0);addMember('','present',0);addMember('','present',0);
