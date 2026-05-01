@@ -242,7 +242,10 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
         </div>
       </div>
       <div class="field">
-        <label>วันที่</label>
+        <label style="display:flex;justify-content:space-between;align-items:center">
+          วันที่
+          <span id="today-badge" style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green-txt);padding:.1rem .45rem;border-radius:999px;letter-spacing:.2px">วันนี้ ✓</span>
+        </label>
         <input type="number" id="work-day" min="1" max="31" placeholder="วัน" style="width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none"/>
       </div>
     </div>
@@ -525,7 +528,7 @@ self.addEventListener('fetch',e=>{
       const d=JSON.parse(raw);
       if(d.teamName)$('team-name').value=d.teamName;
       if(d.workSite)$('work-site').value=d.workSite;
-      if(d.workDay)$('work-day').value=d.workDay;
+      // วันที่ใช้วันปัจจุบันเสมอ — ไม่โหลดจาก storage เพื่อป้องกันลืมเปลี่ยน
       roster=d.roster||[];
       seq=d.seq||0;
       members=(d.members||[]).map(m=>({...m}));
@@ -554,6 +557,15 @@ self.addEventListener('fetch',e=>{
     $(id)?.addEventListener('input',scheduleSave);
     $(id)?.addEventListener('change',scheduleSave);
   });
+  // badge "วันนี้" — แสดงเมื่อตรงกับวันปัจจุบัน ซ่อนเมื่อแก้เอง
+  function updateTodayBadge(){
+    const badge=$('today-badge');if(!badge)return;
+    const val=parseInt(gv('work-day'));
+    const today=new Date().getDate();
+    badge.style.display=(val===today)?'inline':'none';
+  }
+  $('work-day').addEventListener('input',updateTodayBadge);
+  updateTodayBadge();
 
   // ── GPS ──
   $('btn-gps').addEventListener('click',fetchGPS);
@@ -944,25 +956,28 @@ self.addEventListener('fetch',e=>{
   // ── Google Sheet Config ──
   const GAS_KEY='attendance_gas_cfg';
   const GAS_CODE=`function doGet(e) {
+  // ใช้ LockService ป้องกัน race condition เมื่อหลาย request มาพร้อมกัน
+  var lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     var p = e.parameter;
-    // ใช้ชื่อทีม (group) เป็นชื่อ sheet อัตโนมัติ ถ้าไม่ได้ระบุ sheet ไว้
-    var sheetName = p.sheet && p.sheet !== 'Sheet1' ? p.sheet : (p.group || 'Sheet1');
+    var sheetName = (p.sheet && p.sheet.trim() && p.sheet !== 'Sheet1')
+                    ? p.sheet.trim()
+                    : (p.group ? p.group.trim() : 'Sheet1');
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) sheet = ss.insertSheet(sheetName);
-    // เช็คหัวคอลัมน์จากค่าเซลล์ A1 — ป้องกันหัวซ้ำทุกกรณี
-    var hasHeader = sheet.getRange(1,1).getValue() === 'วันที่';
-    if (!hasHeader) {
-      sheet.getRange(1,1).setValue('วันที่');
+    // เช็คหัวจากแถวแรกจริงๆ — สร้างครั้งเดียวเท่านั้น
+    if (sheet.getLastRow() === 0) {
       sheet.appendRow(['วันที่','ชื่อสกุล','โอที','กลุ่ม','สถานที่']);
       sheet.getRange(1,1,1,5)
            .setFontWeight('bold')
            .setBackground('#1A5FAA')
            .setFontColor('#ffffff');
+      SpreadsheetApp.flush();
     }
-    // A=วันที่  B=ชื่อสกุล  C=โอที  D=กลุ่ม  E=สถานที่
     sheet.appendRow([p.date, p.name, Number(p.ot)||0, p.group, p.site]);
+    SpreadsheetApp.flush();
     return ContentService
       .createTextOutput(JSON.stringify({status:'ok'}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -970,6 +985,8 @@ self.addEventListener('fetch',e=>{
     return ContentService
       .createTextOutput(JSON.stringify({status:'error',msg:err.message}))
       .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
   }
 }`;
 
@@ -1147,7 +1164,6 @@ self.addEventListener('fetch',e=>{
     }
   });
 
-  
   // ── Navigation helpers ──
   window.scrollToTop=()=>window.scrollTo({top:0,behavior:'smooth'});
   window.scrollToGPS=()=>document.querySelectorAll('.card')[1]?.scrollIntoView({behavior:'smooth',block:'start'});
