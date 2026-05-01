@@ -1049,13 +1049,12 @@ self.addEventListener('fetch',e=>{
     let sheetOk=true;
     if(presentMembers.length>0){
       try{
-        // ถ้าไม่ได้ตั้งค่า sheet ไว้ ใช้ชื่อทีมเป็นชื่อ sheet อัตโนมัติ
+        // ส่งทีละคนตามลำดับ (sequential) ป้องกัน race condition หัวซ้ำ
         const effectiveSheet = (cfg.sheet && cfg.sheet.trim()) ? cfg.sheet.trim() : teamName;
-        const sends=presentMembers.map(m=>{
+        for(const m of presentMembers){
           const params=new URLSearchParams({sheet:effectiveSheet,date:workDate,name:m.name||'-',ot:parseFloat(m.ot)||0,group:teamName,site:workSite});
-          return fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
-        });
-        await Promise.all(sends);
+          await fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
+        }
         res.className='sheet-result ok';
         res.textContent=`✓ บันทึก ${presentMembers.length} คน วันที่ ${workDate} — ดาวน์โหลดภาพ PNG แล้ว`;
       }catch(err){
@@ -1164,7 +1163,6 @@ self.addEventListener('fetch',e=>{
     }
   });
 
-  
   // ── Navigation helpers ──
   window.scrollToTop=()=>window.scrollTo({top:0,behavior:'smooth'});
   window.scrollToGPS=()=>document.querySelectorAll('.card')[1]?.scrollIntoView({behavior:'smooth',block:'start'});
