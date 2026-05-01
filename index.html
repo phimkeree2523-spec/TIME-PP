@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
@@ -302,9 +301,9 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
       <label style="display:flex;align-items:center;gap:.4rem;padding:.52rem .8rem;background:var(--accent-light);color:var(--accent);border:1.5px solid var(--accent);border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         นำเข้าไฟล์
-        <input type="file" id="import-file" accept=".txt,.csv" style="display:none"/>
+        <input type="file" id="import-file" accept=".txt,.csv,.xlsx,.xls" style="display:none"/>
       </label>
-      <span style="font-size:11px;color:var(--text3);line-height:1.4">รองรับ .txt/.csv<br>ชื่อละ 1 บรรทัด</span>
+      <span style="font-size:11px;color:var(--text3);line-height:1.4">รองรับ .txt/.csv/.xlsx<br>ชื่อละ 1 บรรทัด (คอลัมน์แรก)</span>
     </div>
     <div class="tags" id="rtags"></div>
   </div>
@@ -1011,23 +1010,58 @@ self.addEventListener('fetch',e=>{
   loadTeams();
 
   // ── Import file ──
+  function processNames(names){
+    let added=0,dup=0;
+    names.forEach(function(name){
+      if(!name)return;
+      if(roster.includes(name)){dup++;return;}
+      roster.push(name);added++;
+    });
+    renderRoster();refreshAllDD();scheduleSave();
+    showToast('นำเข้า '+added+' ชื่อ'+(dup?' (ซ้ำ '+dup+')':''));
+  }
+
+  function loadSheetJS(cb){
+    if(window.XLSX){cb();return;}
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=cb;
+    s.onerror=function(){showToast('โหลด SheetJS ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต');};
+    document.head.appendChild(s);
+  }
+
   $('import-file').addEventListener('change',function(){
-    const file=this.files[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=e=>{
-      const lines=e.target.result.split(/\r?\n/);
-      let added=0,dup=0;
-      lines.forEach(line=>{
-        const name=line.replace(/,.*$/,'').trim(); // support CSV: take first column
-        if(!name)return;
-        if(roster.includes(name)){dup++;return;}
-        roster.push(name);added++;
-      });
-      renderRoster();refreshAllDD();scheduleSave();
-      showToast(`นำเข้า ${added} ชื่อ${dup?` (ซ้ำ ${dup})`:''}`);
-    };
-    reader.readAsText(file,'UTF-8');
+    var file=this.files[0];if(!file)return;
+    var ext=file.name.split('.').pop().toLowerCase();
     this.value=''; // reset so same file can be picked again
+
+    if(ext==='xlsx'||ext==='xls'){
+      // Excel file -- use SheetJS
+      loadSheetJS(function(){
+        var reader=new FileReader();
+        reader.onload=function(e){
+          try{
+            var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+            var ws=wb.Sheets[wb.SheetNames[0]];
+            var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+            var names=rows.map(function(r){return String(r[0]||'').trim();}).filter(Boolean);
+            processNames(names);
+          }catch(err){
+            showToast('อ่านไฟล์ Excel ไม่สำเร็จ');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      // Text / CSV file
+      var reader=new FileReader();
+      reader.onload=function(e){
+        var lines=e.target.result.split(/\r?\n/);
+        var names=lines.map(function(line){return line.replace(/,.*$/,'').trim();}).filter(Boolean);
+        processNames(names);
+      };
+      reader.readAsText(file,'UTF-8');
+    }
   });
 
   // ── Navigation helpers ──
