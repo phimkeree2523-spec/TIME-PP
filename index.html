@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#1A5FAA" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="เวลาทำงาน"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="application-name" content="บันทึกเวลาทำงาน"/>
+<meta name="description" content="บันทึกเวลาทำงานทีม เช็คพิกัด และส่งออก PNG"/>
+<link rel="manifest" id="manifest-link"/>
+<title>บันทึกเวลาทำงานทีม</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F5F4F0;--card:#FFFFFF;--accent:#1A5FAA;--accent-light:#E8F0FB;--accent-mid:#4A86D4;
+  --text:#1A1A18;--text2:#6B6B65;--text3:#A0A09A;--border:#E2E0D8;--border2:#C8C6BE;
+  --green-bg:#EAF3DE;--green-txt:#3B6D11;--red-bg:#FCEBEB;--red-txt:#A32D2D;
+  --amber-bg:#FAEEDA;--amber-txt:#854F0B;
+  --radius:14px;--radius-sm:10px;--radius-xs:7px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#111110;--card:#1C1C1A;--accent:#4A86D4;--accent-light:#1A2D48;
+  --text:#F0EDE8;--text2:#A0A09A;--text3:#6B6B65;--border:#2C2C2A;--border2:#3C3C3A;
+  --green-bg:#1a3a1a;--green-txt:#7ec87e;--red-bg:#3a1a1a;--red-txt:#e27070;
+  --amber-bg:#3a2a10;--amber-txt:#d4a040;--shadow:0 1px 4px rgba(0,0,0,0.3);
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min-height:100vh;
+  padding-bottom:calc(4.5rem + var(--safe-bot));
+  padding-left:var(--safe-l);padding-right:var(--safe-r);
+}
+.app{max-width:480px;margin:0 auto}
+
+/* ── Header ── */
+.page-header{
+  background:var(--accent);
+  padding:calc(.9rem + var(--safe-top)) 1rem .9rem;
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:.75rem
+}
+.hico{width:36px;height:36px;background:rgba(255,255,255,0.18);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hico svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.htxt{flex:1}
+.htxt h1{font-size:16px;font-weight:600;color:#fff;line-height:1.2}
+.htxt p{font-size:11px;color:rgba(255,255,255,0.65);margin-top:1px}
+.hdr-badges{display:flex;gap:.4rem;align-items:center}
+.badge-offline{display:none;align-items:center;gap:.25rem;background:rgba(255,255,255,0.15);border-radius:999px;padding:.2rem .55rem;font-size:11px;color:#fff;font-weight:500}
+.badge-offline.show{display:flex}
+.badge-saved{display:none;align-items:center;gap:.25rem;background:rgba(255,255,255,0.15);border-radius:999px;padding:.2rem .55rem;font-size:11px;color:#fff;font-weight:500}
+.badge-saved.show{display:flex}
+
+/* ── Cards ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin:.875rem .875rem 0;overflow:visible}
+.card-hdr{padding:.8rem 1rem .6rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem}
+.chico{width:26px;height:26px;background:var(--accent-light);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chico svg{width:13px;height:13px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ctitle{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.4px;text-transform:uppercase}
+.cbody{padding:.8rem 1rem}
+
+.field{margin-bottom:.7rem}.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.28rem}
+.field input,.field select{width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+
+/* ── GPS ── */
+.gps-body{padding:.8rem 1rem}
+.gps-btn-row{display:flex;gap:.5rem;margin-bottom:.7rem}
+.btn-gps{flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem;padding:.7rem .75rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:500;font-family:'Sarabun',sans-serif;cursor:pointer;transition:opacity .15s}
+.btn-gps:active{opacity:.82}
+.btn-gps svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.btn-gps.loading{opacity:.7;pointer-events:none}
+.btn-gps-clear{padding:.7rem .8rem;background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer}
+.btn-gps-clear:active{background:var(--red-bg);color:var(--red-txt)}
+.gps-result{background:var(--bg);border-radius:var(--radius-sm);border:1.5px solid var(--border);overflow:hidden;display:none}
+.gps-result.show{display:block}
+.gps-row{display:flex;align-items:flex-start;gap:.6rem;padding:.6rem .75rem;border-bottom:1px solid var(--border)}
+.gps-row:last-child{border-bottom:none}
+.gps-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;min-width:52px;padding-top:2px;flex-shrink:0}
+.gps-val{font-size:13px;color:var(--text);line-height:1.45;word-break:break-all}
+.gps-val a{color:var(--accent);text-decoration:none;font-size:12px}
+.gps-status{font-size:13px;color:var(--text2);padding:.5rem 0 .1rem;display:flex;align-items:center;gap:.4rem}
+.gps-status.err{color:var(--red-txt)}
+.dot-anim{display:inline-block;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Roster ── */
+.radd-row{display:flex;gap:.5rem;margin-bottom:.7rem}
+.radd-row input{flex:1;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;transition:border-color .15s}
+.radd-row input:focus{border-color:var(--accent)}
+.radd-row button{padding:.65rem .95rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;font-family:'Sarabun',sans-serif}
+.radd-row button:active{opacity:.82}
+.tags{display:flex;flex-wrap:wrap;gap:.4rem}
+.tag{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .55rem .25rem .7rem;background:var(--accent-light);border-radius:999px;font-size:13px;color:var(--accent);font-weight:500}
+.tag button{background:none;border:none;cursor:pointer;color:var(--accent);opacity:.55;font-size:14px;line-height:1;padding:0;display:flex}
+
+/* ── Members ── */
+.mem-hdr{display:grid;grid-template-columns:1fr 80px 66px 34px;gap:5px;padding:.45rem 1rem .35rem;border-bottom:1px solid var(--border)}
+.mem-hdr span{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px}
+.mem-hdr span:nth-child(2),.mem-hdr span:nth-child(3){text-align:center}
+.mem-item{border-bottom:1px solid var(--border)}.mem-item:last-child{border-bottom:none}
+.mem-inner{display:grid;grid-template-columns:1fr 80px 66px 34px;gap:5px;align-items:center;padding:.45rem 1rem}
+.nwrap{position:relative}
+.ninp{width:100%;padding:.52rem .6rem;border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:14px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;transition:border-color .15s}
+.ninp:focus{border-color:var(--accent)}
+.dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--card);border:1.5px solid var(--border2);border-radius:var(--radius-sm);z-index:300;max-height:190px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.dd.open{display:block}
+.dd-sec{padding:.35rem .7rem .15rem;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px}
+.dd-item{padding:.62rem .7rem;font-size:14px;color:var(--text);cursor:pointer;font-family:'Sarabun',sans-serif}
+.dd-item:hover,.dd-item:active{background:var(--accent-light);color:var(--accent)}
+.ssel{width:100%;padding:.46rem .15rem;border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:12px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;text-align:center;cursor:pointer}
+.ssel:focus{border-color:var(--accent)}
+.otinp{width:100%;padding:.46rem .3rem;border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:14px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;text-align:center}
+.otinp:focus{border-color:var(--accent)}
+.dbtn{width:32px;height:32px;border:1.5px solid var(--border);border-radius:var(--radius-xs);background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.dbtn:active{background:var(--red-bg);color:var(--red-txt);border-color:var(--red-txt)}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:calc(100% - 2rem);margin:.55rem 1rem .8rem;padding:.62rem;border:1.5px dashed var(--border2);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-size:14px;font-family:'Sarabun',sans-serif;font-weight:500;cursor:pointer}
+.add-btn:active{background:var(--accent-light);color:var(--accent);border-color:var(--accent)}
+
+/* ── Summary ── */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;padding:0 1rem .8rem}
+.sc{background:var(--bg);border-radius:var(--radius-sm);padding:.65rem .4rem;text-align:center}
+.sc .slbl{font-size:11px;color:var(--text2);font-weight:500;margin-bottom:.15rem}
+.sc .sval{font-size:26px;font-weight:700}
+.sc.g .sval{color:var(--green-txt)}.sc.r .sval{color:var(--red-txt)}.sc.b .sval{color:var(--accent)}
+
+/* ── Buttons ── */
+.barea{padding:0 .875rem .875rem}
+.bexp{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;margin-bottom:.5rem}
+.bexp:active{opacity:.85}
+.bexp svg,.bdl svg{width:17px;height:17px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bexp svg{stroke:#fff}
+.bdl{display:none;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:.8rem;background:var(--green-bg);color:var(--green-txt);border:1.5px solid var(--green-txt);border-radius:var(--radius-sm);font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;text-decoration:none}
+.bdl svg{stroke:var(--green-txt)}
+.bdl:active{opacity:.82}
+.prev-wrap{padding:0 .875rem .875rem;display:none}
+canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);display:block}
+
+/* ── Install Banner ── */
+.install-bar{
+  display:none;position:fixed;bottom:calc(4.6rem + var(--safe-bot));left:.875rem;right:.875rem;
+  background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);
+  box-shadow:0 8px 32px rgba(0,0,0,0.14);z-index:200;
+  padding:.8rem 1rem;align-items:center;gap:.75rem;
+}
+.install-bar.show{display:flex}
+.install-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.install-icon svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.install-txt{flex:1}
+.install-txt strong{font-size:13px;font-weight:600;color:var(--text);display:block}
+.install-txt span{font-size:11px;color:var(--text2)}
+.install-btn{padding:.5rem .9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;white-space:nowrap}
+.install-btn:active{opacity:.82}
+.install-close{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:.2rem;line-height:1}
+
+/* ── Bottom Nav ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--card);border-top:1px solid var(--border);
+  display:flex;align-items:stretch;
+  padding-bottom:var(--safe-bot);
+  z-index:100;
+}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:.6rem .25rem;border:none;background:none;cursor:pointer;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:10px;font-weight:500;position:relative;transition:color .15s}
+.bnav-item.active{color:var(--accent)}
+.bnav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bnav-item.active svg{stroke:var(--accent)}
+
+/* ── Clear Data button ── */
+.btn-clear-data{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.72rem;background:transparent;color:var(--red-txt);border:1.5px solid var(--red-txt);border-radius:var(--radius-sm);font-size:14px;font-weight:500;font-family:'Sarabun',sans-serif;cursor:pointer;opacity:.75}
+.btn-clear-data:active{opacity:1;background:var(--red-bg)}
+
+/* ── Google Sheet button ── */
+.bgsheet{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:.9rem;background:#1E7E34;color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;margin-bottom:.5rem}
+.bgsheet:active{opacity:.85}
+.bgsheet svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bgsheet:disabled{opacity:.55;cursor:not-allowed}
+.sheet-cfg{background:var(--bg);border-radius:var(--radius-sm);border:1.5px solid var(--border);padding:.75rem;margin-bottom:.5rem;display:none}
+.sheet-cfg.open{display:block}
+.sheet-cfg label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:.25rem}
+.sheet-cfg input{width:100%;padding:.6rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:13px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;margin-bottom:.6rem}
+.sheet-cfg input:focus{border-color:var(--accent)}
+.sheet-cfg .cfg-hint{font-size:11px;color:var(--text3);line-height:1.5;margin-top:-.3rem;margin-bottom:.6rem}
+.sheet-cfg .btn-save-cfg{padding:.5rem .9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer}
+.sheet-result{font-size:13px;padding:.5rem .6rem;border-radius:var(--radius-xs);margin-bottom:.5rem;display:none}
+.sheet-result.ok{background:var(--green-bg);color:var(--green-txt);display:block}
+.sheet-result.err{background:var(--red-bg);color:var(--red-txt);display:block}
+.btn-cfg-toggle{display:flex;align-items:center;gap:.3rem;background:none;border:none;color:var(--text3);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;padding:.1rem 0;margin-bottom:.4rem}
+.btn-cfg-toggle svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:calc(5.5rem + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:var(--bg);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:500;padding:.55rem 1.1rem;border-radius:999px;opacity:0;transition:all .22s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Auto-save indicator ── */
+@keyframes savepulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+.saving{animation:savepulse .8s ease}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="page-header">
+  <div class="hico">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+  </div>
+  <div class="htxt">
+    <h1>บันทึกเวลาทำงานทีม</h1>
+    <p id="last-saved-label">กรอกข้อมูล เช็คพิกัด และส่งออก PNG</p>
+  </div>
+  <div class="hdr-badges">
+    <div class="badge-offline" id="badge-offline">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+      ออฟไลน์
+    </div>
+  </div>
+</header>
+
+<!-- ข้อมูลทั่วไป -->
+<div class="card">
+  <div class="card-hdr">
+    <div class="chico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+    <span class="ctitle">ข้อมูลทั่วไป</span>
+  </div>
+  <div class="cbody">
+    <div class="frow">
+      <div class="field">
+        <label>ชื่อทีม</label>
+        <div class="nwrap" style="position:relative">
+          <input type="text" id="team-name" placeholder="เช่น ทีม A" autocomplete="off"/>
+          <div class="dd" id="dd-team" style="z-index:400"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>วันที่</label>
+        <input type="number" id="work-day" min="1" max="31" placeholder="วัน" style="width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none"/>
+      </div>
+    </div>
+    <div class="field"><label>สถานที่</label><input type="text" id="work-site" placeholder="โครงการ..."/></div>
+  </div>
+</div>
+
+<!-- พิกัด GPS -->
+<div class="card">
+  <div class="card-hdr">
+    <div class="chico"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+    <span class="ctitle">พิกัดสถานที่ส่งงาน</span>
+  </div>
+  <div class="gps-body">
+    <div class="gps-btn-row">
+      <button class="btn-gps" id="btn-gps">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" stroke-dasharray="2 3"/></svg>
+        ดึงพิกัดปัจจุบัน
+      </button>
+      <button class="btn-gps-clear" id="btn-gps-clear" style="display:none">ล้าง</button>
+    </div>
+    <div id="gps-status" class="gps-status" style="display:none"></div>
+    <div class="gps-result" id="gps-result">
+      <div class="gps-row">
+        <span class="gps-lbl">ที่อยู่</span>
+        <span class="gps-val" id="gps-addr">—</span>
+      </div>
+      <div class="gps-row">
+        <span class="gps-lbl">Lat/Lng</span>
+        <span class="gps-val" id="gps-coords">—</span>
+      </div>
+      <div class="gps-row">
+        <span class="gps-lbl">แผนที่</span>
+        <span class="gps-val"><a id="gps-link" href="#" target="_blank">เปิด Google Maps</a></span>
+      </div>
+      <div class="gps-row">
+        <span class="gps-lbl">เวลา</span>
+        <span class="gps-val" id="gps-time">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- รายชื่อประจำ -->
+<div class="card">
+  <div class="card-hdr">
+    <div class="chico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+    <span class="ctitle">รายชื่อประจำ (Dropdown)</span>
+  </div>
+  <div class="cbody">
+    <div class="radd-row">
+      <input type="text" id="ri" placeholder="พิมพ์ชื่อ แล้วกด Enter หรือ +" autocomplete="off"/>
+      <button id="rbtn">+ เพิ่ม</button>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.7rem;align-items:center">
+      <label style="display:flex;align-items:center;gap:.4rem;padding:.52rem .8rem;background:var(--accent-light);color:var(--accent);border:1.5px solid var(--accent);border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        นำเข้าไฟล์
+        <input type="file" id="import-file" accept=".txt,.csv" style="display:none"/>
+      </label>
+      <span style="font-size:11px;color:var(--text3);line-height:1.4">รองรับ .txt/.csv<br>ชื่อละ 1 บรรทัด</span>
+    </div>
+    <div class="tags" id="rtags"></div>
+  </div>
+</div>
+
+<!-- รายชื่อทีมงาน -->
+<div class="card">
+  <div class="card-hdr">
+    <div class="chico"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="2.5"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="2.5"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="2.5"/></svg></div>
+    <span class="ctitle">รายชื่อทีมงาน</span>
+  </div>
+  <div class="mem-hdr">
+    <span>ชื่อ-นามสกุล</span><span>สถานะ</span><span>โอที</span><span></span>
+  </div>
+  <div id="mlist"></div>
+  <button class="add-btn" id="badd">＋ เพิ่มรายชื่อ</button>
+</div>
+
+<!-- สรุป + Export -->
+<div class="card">
+  <div class="card-hdr">
+    <div class="chico"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <span class="ctitle">สรุป</span>
+  </div>
+  <div class="cbody" style="padding-bottom:.5rem">
+    <div class="sg">
+      <div class="sc g"><div class="slbl">มาทำงาน</div><div class="sval" id="sp">0</div></div>
+      <div class="sc r"><div class="slbl">ขาด/ลา</div><div class="sval" id="sa">0</div></div>
+      <div class="sc b"><div class="slbl">โอที (ชม.)</div><div class="sval" id="so">0</div></div>
+    </div>
+  </div>
+  <div class="barea">
+    <button class="bexp" id="bexp">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      ส่งออกเป็นภาพ PNG
+    </button>
+    <a id="dlk" class="bdl">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      ดาวน์โหลด / แชร์ภาพ PNG
+    </a>
+    <div style="margin-top:.5rem">
+      <button class="btn-cfg-toggle" id="btn-cfg-toggle">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07M19.07 4.93L12 12"/></svg>
+        ตั้งค่า Google Sheet
+      </button>
+      <div class="sheet-cfg" id="sheet-cfg">
+        <label>Google Apps Script Web App URL</label>
+        <input type="url" id="gas-url" placeholder="https://script.google.com/macros/s/…/exec"/>
+        <p class="cfg-hint">วาง URL จาก Google Apps Script (ใช้ doGet) ที่ Deploy เป็น Web App แล้ว</p>
+        <label>ชื่อ Sheet (ไม่บังคับ — ค่าเริ่มต้น: Sheet1)</label>
+        <input type="text" id="gas-sheet" placeholder="Sheet1"/>
+        <button class="btn-save-cfg" id="btn-save-cfg">💾 บันทึกการตั้งค่า</button>
+        <div style="margin-top:.75rem;border-top:1px solid var(--border);padding-top:.65rem">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:.3rem">📋 โค้ด Google Apps Script (doGet) — คัดลอกไปวางใน Apps Script:</div>
+          <textarea id="gas-code" readonly style="width:100%;height:180px;font-size:10.5px;font-family:monospace;padding:.5rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);resize:none;line-height:1.5"></textarea>
+          <button onclick="var t=document.getElementById('gas-code');t.select();navigator.clipboard&&navigator.clipboard.writeText(t.value);showGasCopyOk()" style="margin-top:.3rem;padding:.35rem .7rem;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer">📋 คัดลอกโค้ด</button>
+          <span id="gas-copy-ok" style="font-size:11px;color:var(--green-txt);margin-left:.4rem"></span>
+        </div>
+      </div>
+      <div id="sheet-result" class="sheet-result"></div>
+      <button class="bgsheet" id="btn-gsheet">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        บันทึกลง Google Sheet
+      </button>
+    </div>
+  </div>
+  <div class="prev-wrap" id="prev-wrap"><canvas id="ec"></canvas></div>
+</div>
+
+<!-- ล้างข้อมูล -->
+<div style="padding:.875rem .875rem 0">
+  <button class="btn-clear-data" id="btn-clear-data">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    ล้างข้อมูลทั้งหมด
+  </button>
+</div>
+
+<div style="height:1rem"></div>
+
+</div><!-- /app -->
+
+<!-- Install Banner -->
+<div class="install-bar" id="install-bar">
+  <div class="install-icon">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+  </div>
+  <div class="install-txt">
+    <strong>ติดตั้งแอปบนมือถือ</strong>
+    <span>ใช้ได้แบบออฟไลน์ ไม่ต้องใช้อินเทอร์เน็ต</span>
+  </div>
+  <button class="install-btn" id="btn-install">ติดตั้ง</button>
+  <button class="install-close" id="install-close" aria-label="ปิด">×</button>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="bnav-item active" id="bnav-form" onclick="scrollToTop()">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    บันทึก
+  </button>
+  <button class="bnav-item" id="bnav-gps" onclick="scrollToGPS()">
+    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    พิกัด
+  </button>
+  <button class="bnav-item" id="bnav-team" onclick="scrollToTeam()">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    ทีม
+  </button>
+  <button class="bnav-item" id="bnav-export" onclick="scrollToExport()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    ส่งออก
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PWA Manifest (inline) ──────────────────────────────────────────────────
+(function(){
+  const manifest={
+    name:'บันทึกเวลาทำงานทีม',short_name:'เวลาทำงาน',
+    description:'บันทึกเวลาทำงานทีม เช็คพิกัด และส่งออก PNG',
+    start_url:'./',display:'standalone',orientation:'portrait',
+    theme_color:'#1A5FAA',background_color:'#F5F4F0',
+    icons:[
+      {src:'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="38" fill="#1A5FAA"/><rect x="40" y="44" width="112" height="112" rx="12" fill="none" stroke="white" stroke-width="10"/><line x1="40" y1="80" x2="152" y2="80" stroke="white" stroke-width="10"/><line x1="70" y1="32" x2="70" y2="56" stroke="white" stroke-width="10" stroke-linecap="round"/><line x1="122" y1="32" x2="122" y2="56" stroke="white" stroke-width="10" stroke-linecap="round"/></svg>`),
+      sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'}
+    ]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  document.getElementById('manifest-link').href=url;
+})();
+
+// ── Service Worker ─────────────────────────────────────────────────────────
+(function(){
+  if(!('serviceWorker' in navigator))return;
+  const swCode=`
+const CACHE='attendance-v2';
+const ASSETS=[self.registration.scope];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  const url=new URL(e.request.url);
+  // Don't cache Nominatim or Google Maps
+  if(url.hostname.includes('nominatim')||url.hostname.includes('google')||url.hostname.includes('googleapis')||url.hostname.includes('fonts'))return;
+  e.respondWith(caches.open(CACHE).then(c=>c.match(e.request).then(cached=>{
+    if(cached)return cached;
+    return fetch(e.request).then(resp=>{if(resp&&resp.ok)c.put(e.request,resp.clone());return resp;}).catch(()=>cached);
+  })));
+});
+  `;
+  const blob=new Blob([swCode],{type:'application/javascript'});
+  const url=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url,{scope:'./'}).catch(()=>{});
+})();
+
+// ── Main App ───────────────────────────────────────────────────────────────
+(function(){
+  const STORE_KEY='attendance_app_v2';
+  let members=[],seq=0,roster=[];
+  let gpsData=null;
+  let deferredPrompt=null;
+  let saveTimer=null;
+
+  function gv(id){return document.getElementById(id)?.value||'';}
+  function $(id){return document.getElementById(id);}
+
+  // ── Toast ──
+  function showToast(msg,dur=2200){
+    const t=$('toast');t.textContent=msg;t.classList.add('show');
+    clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),dur);
+  }
+
+  // ── Offline badge ──
+  function updateOnlineStatus(){
+    const b=$('badge-offline');
+    if(navigator.onLine)b.classList.remove('show');
+    else b.classList.add('show');
+  }
+  window.addEventListener('online',updateOnlineStatus);
+  window.addEventListener('offline',()=>{updateOnlineStatus();showToast('ออฟไลน์ – ข้อมูลถูกบันทึกในเครื่อง');});
+  updateOnlineStatus();
+
+  // ── Auto-save ──
+  function scheduleSave(){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(saveData,800);
+  }
+  function saveData(){
+    const data={
+      teamName:gv('team-name'),
+      workSite:gv('work-site'),workDay:gv('work-day'),
+      roster,members,seq,gpsData,
+      savedAt:new Date().toISOString()
+    };
+    try{
+      localStorage.setItem(STORE_KEY,JSON.stringify(data));
+      const lbl=$('last-saved-label');
+      const t=new Date();
+      lbl.textContent=`บันทึกล่าสุด ${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')} น.`;
+      lbl.classList.add('saving');
+      setTimeout(()=>lbl.classList.remove('saving'),800);
+    }catch(e){}
+  }
+  function loadData(){
+    try{
+      const raw=localStorage.getItem(STORE_KEY);
+      if(!raw)return false;
+      const d=JSON.parse(raw);
+      if(d.teamName)$('team-name').value=d.teamName;
+      if(d.workSite)$('work-site').value=d.workSite;
+      if(d.workDay)$('work-day').value=d.workDay;
+      roster=d.roster||[];
+      seq=d.seq||0;
+      members=(d.members||[]).map(m=>({...m}));
+      if(d.gpsData&&d.gpsData.lat){
+        gpsData=d.gpsData;
+        gpsData.time=new Date(gpsData.time);
+        $('gps-coords').textContent=`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}  (±${gpsData.acc}ม.)`;
+        $('gps-time').textContent=gpsData.time.toLocaleString('th-TH');
+        $('gps-link').href=`https://www.google.com/maps?q=${gpsData.lat},${gpsData.lng}`;
+        $('gps-addr').textContent=gpsData.addr||'-';
+        $('gps-result').classList.add('show');
+        $('btn-gps-clear').style.display='block';
+      }
+      renderRoster();
+      if(members.length)render();
+      if(d.savedAt){
+        const t=new Date(d.savedAt);
+        $('last-saved-label').textContent=`บันทึกล่าสุด ${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')} น.`;
+      }
+      return true;
+    }catch(e){return false;}
+  }
+
+  // ── Auto-save on field change ──
+  ['team-name','work-site','work-day'].forEach(id=>{
+    $(id)?.addEventListener('input',scheduleSave);
+    $(id)?.addEventListener('change',scheduleSave);
+  });
+
+  // ── GPS ──
+  $('btn-gps').addEventListener('click',fetchGPS);
+  $('btn-gps-clear').addEventListener('click',clearGPS);
+
+  function fetchGPS(){
+    if(!navigator.geolocation){showToast('เบราว์เซอร์ไม่รองรับ GPS');return;}
+    const btn=$('btn-gps');
+    btn.classList.add('loading');
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg><span>กำลังดึงพิกัด<span class="dot-anim">...</span></span>`;
+    const st=$('gps-status');st.style.display='flex';st.className='gps-status';st.textContent='กำลังระบุตำแหน่ง...';
+
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        const lat=pos.coords.latitude,lng=pos.coords.longitude;
+        const acc=Math.round(pos.coords.accuracy);
+        const now=new Date();
+        gpsData={lat,lng,acc,time:now};
+        $('gps-coords').textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}  (±${acc}ม.)`;
+        $('gps-time').textContent=now.toLocaleString('th-TH');
+        $('gps-link').href=`https://www.google.com/maps?q=${lat},${lng}`;
+        $('gps-result').classList.add('show');
+        $('btn-gps-clear').style.display='block';
+        st.style.display='none';
+        $('gps-addr').textContent='กำลังค้นหาที่อยู่...';
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=th`)
+          .then(r=>r.json())
+          .then(d=>{const addr=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;$('gps-addr').textContent=addr;gpsData.addr=addr;scheduleSave();})
+          .catch(()=>{const addr=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;$('gps-addr').textContent=addr;gpsData.addr=addr;scheduleSave();});
+        resetGPSBtn();showToast('ดึงพิกัดสำเร็จ');scheduleSave();
+      },
+      err=>{
+        let msg='ไม่สามารถดึงพิกัดได้';
+        if(err.code===1)msg='ปฏิเสธการเข้าถึง GPS กรุณาอนุญาตในเบราว์เซอร์';
+        else if(err.code===2)msg='ไม่พบสัญญาณ GPS';
+        else if(err.code===3)msg='หมดเวลาดึงพิกัด ลองใหม่อีกครั้ง';
+        st.style.display='flex';st.className='gps-status err';st.textContent=msg;
+        resetGPSBtn();showToast(msg);
+      },
+      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+    );
+  }
+  function resetGPSBtn(){
+    const btn=$('btn-gps');btn.classList.remove('loading');
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>ดึงพิกัดปัจจุบัน`;
+  }
+  function clearGPS(){
+    gpsData=null;
+    $('gps-result').classList.remove('show');
+    $('btn-gps-clear').style.display='none';
+    $('gps-status').style.display='none';
+    $('gps-addr').textContent='—';$('gps-coords').textContent='—';
+    $('gps-time').textContent='—';$('gps-link').href='#';
+    scheduleSave();
+  }
+
+  // ── Roster ──
+  function addRoster(){
+    const inp=$('ri'),name=inp.value.trim();
+    if(!name)return;
+    if(roster.includes(name)){showToast('มีชื่อนี้แล้ว');return;}
+    roster.push(name);inp.value='';renderRoster();refreshAllDD();scheduleSave();
+  }
+  $('ri').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addRoster();}});
+  $('rbtn').addEventListener('pointerdown',e=>{e.preventDefault();addRoster();});
+  function removeRoster(name){roster=roster.filter(r=>r!==name);renderRoster();refreshAllDD();scheduleSave();}
+  function renderRoster(){
+    $('rtags').innerHTML=roster.map(r=>`<span class="tag">${r}<button class="tag-del" data-n="${r}">×</button></span>`).join('');
+    $('rtags').querySelectorAll('.tag-del').forEach(b=>{
+      b.addEventListener('pointerdown',e=>{e.preventDefault();removeRoster(b.dataset.n);});
+    });
+  }
+
+  // ── Members ──
+  function addMember(n='',s='present',o=0){members.push({id:++seq,name:n,status:s,ot:o});render();scheduleSave();}
+  function removeMember(id){members=members.filter(m=>m.id!==id);render();scheduleSave();}
+  function updateMember(id,f,v){const m=members.find(m=>m.id===id);if(m){m[f]=v;updateSum();scheduleSave();}}
+
+  // ── Dropdown ──
+  function getSugg(curId,q){
+    const lq=q.toLowerCase();
+    const used=[...new Set(members.filter(m=>m.id!==curId&&m.name.trim()).map(m=>m.name.trim()))];
+    return{
+      fromRoster:roster.filter(r=>!lq||r.toLowerCase().includes(lq)),
+      fromUsed:used.filter(r=>!roster.includes(r)&&(!lq||r.toLowerCase().includes(lq)))
+    };
+  }
+  function buildDDHTML(id,q){
+    const{fromRoster,fromUsed}=getSugg(id,q);
+    if(!fromRoster.length&&!fromUsed.length)return'';
+    let h='';
+    if(fromRoster.length){h+=`<div class="dd-sec">รายชื่อประจำ</div>`;h+=fromRoster.map(r=>`<div class="dd-item" data-n="${r.replace(/"/g,'&quot;')}">${r}</div>`).join('');}
+    if(fromUsed.length){h+=`<div class="dd-sec">ใช้ล่าสุด</div>`;h+=fromUsed.map(r=>`<div class="dd-item" data-n="${r.replace(/"/g,'&quot;')}">${r}</div>`).join('');}
+    return h;
+  }
+  function showDD(id){
+    const dd=$('dd-'+id);if(!dd)return;
+    const inp=$('ni-'+id);
+    const h=buildDDHTML(id,inp?inp.value:'');
+    if(!h){dd.classList.remove('open');return;}
+    dd.innerHTML=h;
+    dd.querySelectorAll('.dd-item').forEach(item=>{
+      item.addEventListener('pointerdown',e=>{e.preventDefault();pickName(id,item.dataset.n);});
+    });
+    dd.classList.add('open');
+  }
+  function hideDD(id){const dd=$('dd-'+id);if(dd)dd.classList.remove('open');}
+  function pickName(id,name){
+    const m=members.find(m=>m.id===id);if(m)m.name=name;
+    const inp=$('ni-'+id);if(inp)inp.value=name;
+    hideDD(id);updateSum();refreshAllDD();scheduleSave();
+  }
+  function refreshAllDD(){
+    members.forEach(m=>{const dd=$('dd-'+m.id);if(dd&&dd.classList.contains('open'))showDD(m.id);});
+  }
+
+  function render(){
+    $('mlist').innerHTML=members.map(m=>`
+      <div class="mem-item"><div class="mem-inner">
+        <div class="nwrap">
+          <input class="ninp" id="ni-${m.id}" type="text" placeholder="ชื่อ-นามสกุล" value="${(m.name||'').replace(/"/g,'&quot;')}" autocomplete="off"/>
+          <div class="dd" id="dd-${m.id}"></div>
+        </div>
+        <select class="ssel" id="st-${m.id}">
+          <option value="present"${m.status==='present'?' selected':''}>✓ มา</option>
+          <option value="absent"${m.status==='absent'?' selected':''}>✗ ขาด</option>
+          <option value="leave"${m.status==='leave'?' selected':''}>◎ ลา</option>
+        </select>
+        <input class="otinp" id="ot-${m.id}" type="number" min="0" max="24" step="0.5" placeholder="0" value="${m.ot||''}"/>
+        <button class="dbtn" id="del-${m.id}">✕</button>
+      </div></div>`).join('');
+    members.forEach(m=>{
+      const inp=$('ni-'+m.id),sel=$('st-'+m.id),oti=$('ot-'+m.id),del=$('del-'+m.id);
+      inp.addEventListener('focus',()=>showDD(m.id));
+      inp.addEventListener('input',()=>{updateMember(m.id,'name',inp.value);showDD(m.id);});
+      inp.addEventListener('blur',()=>setTimeout(()=>hideDD(m.id),150));
+      sel.addEventListener('change',()=>updateMember(m.id,'status',sel.value));
+      oti.addEventListener('input',()=>updateMember(m.id,'ot',parseFloat(oti.value)||0));
+      del.addEventListener('pointerdown',e=>{e.preventDefault();removeMember(m.id);});
+    });
+    updateSum();
+  }
+
+  function updateSum(){
+    const p=members.filter(m=>m.status==='present').length;
+    const a=members.filter(m=>m.status!=='present').length;
+    const o=members.reduce((s,m)=>s+(parseFloat(m.ot)||0),0);
+    $('sp').textContent=p;$('sa').textContent=a;
+    $('so').textContent=o%1===0?o:o.toFixed(1);
+  }
+
+  $('badd').addEventListener('click',()=>addMember());
+
+  // ── Clear Data ──
+  $('btn-clear-data').addEventListener('click',()=>{
+    if(!confirm('ล้างข้อมูลทั้งหมดใช่ไหม? (ไม่สามารถกู้คืนได้)'))return;
+    localStorage.removeItem(STORE_KEY);
+    members=[];seq=0;roster=[];gpsData=null;
+    $('team-name').value='';
+    $('work-site').value='';$('work-day').value=new Date().getDate();
+    clearGPS();renderRoster();
+    addMember('','present',0);addMember('','present',0);addMember('','present',0);
+    $('prev-wrap').style.display='none';
+    $('dlk').style.display='none';
+    $('last-saved-label').textContent='กรอกข้อมูล เช็คพิกัด และส่งออก PNG';
+    showToast('ล้างข้อมูลแล้ว');
+  });
+
+  // ── Export PNG ──
+  function fmtDate(d){
+    if(!d)return'-';
+    const[y,mo,dy]=d.split('-');
+    const ms=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    return`${parseInt(dy)} ${ms[parseInt(mo)-1]} ${parseInt(y)+543}`;
+  }
+
+  $('bexp').addEventListener('click',()=>{
+    const team=gv('team-name')||'ทีม';
+    const site=gv('work-site')||'-',day=gv('work-day')||new Date().getDate();
+    const now2=new Date();
+    const ms2=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const dateLabel=`${day} ${ms2[now2.getMonth()]} ${now2.getFullYear()+543}`;
+    const present=members.filter(m=>m.status==='present').length;
+    const absent=members.filter(m=>m.status!=='present').length;
+    const totalOT=members.reduce((s,m)=>s+(parseFloat(m.ot)||0),0);
+
+    const hasGPS=!!(gpsData&&gpsData.lat);
+    const ROW_H=38,W=720;
+    const GPS_H=hasGPS?78:0;
+    const HDR=236+GPS_H;
+    const H=HDR+Math.max(members.length,1)*ROW_H+100;
+
+    const cv=$('ec');cv.width=W;cv.height=H;
+    const ctx=cv.getContext('2d');
+    const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+    const bg=dark?'#1C1C1A':'#fff';
+    const fg=dark?'#F0EDE8':'#1A1A18';
+    const fg2=dark?'#A0A09A':'#6B6B65';
+    const acc=dark?'#4A86D4':'#1A5FAA';
+    const accL=dark?'#1A2D48':'#E8F0FB';
+    const brd=dark?'#2C2C2A':'#E2E0D8';
+    const rowE=dark?'#222':'#F8F7F4';
+    const grn=dark?'#1a3a1a':'#EAF3DE',grnT=dark?'#7ec87e':'#3B6D11';
+    const red=dark?'#3a1a1a':'#FCEBEB',redT=dark?'#e27070':'#A32D2D';
+    const amb=dark?'#3a2a10':'#FAEEDA',ambT=dark?'#d4a040':'#854F0B';
+    const gpsBg=dark?'#1a2d48':'#F0F6FF';
+
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=acc;ctx.fillRect(0,0,W,8);
+    ctx.fillStyle=accL;ctx.fillRect(0,8,W,90);
+    ctx.fillStyle=acc;ctx.font='bold 24px sans-serif';ctx.fillText('บันทึกเวลาทำงานทีม',28,50);
+    ctx.fillStyle=fg2;ctx.font='400 14px sans-serif';ctx.fillText(team,28,76);
+
+    const iy=118;
+    [[site,'สถานที่ทำงาน',28],[dateLabel,'วันที่',210],[`${present} คน`,'มาทำงาน',380],[`${totalOT%1===0?totalOT:totalOT.toFixed(1)} ชม.`,'รวมโอที',540]].forEach(([v,l,x])=>{
+      ctx.fillStyle=fg2;ctx.font='400 11px sans-serif';ctx.fillText(l,x,iy);
+      ctx.fillStyle=fg;ctx.font='600 16px sans-serif';ctx.fillText(v,x,iy+20);
+    });
+
+    let curY=160;
+    if(hasGPS){
+      ctx.fillStyle=gpsBg;
+      ctx.beginPath();ctx.roundRect(20,curY,W-40,GPS_H-8,8);ctx.fill();
+      ctx.strokeStyle=dark?'#3c5a8a':'#B5D4F4';ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(20,curY,W-40,GPS_H-8,8);ctx.stroke();
+      ctx.fillStyle=acc;ctx.beginPath();ctx.arc(44,curY+22,7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(44,curY+22,3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=acc;ctx.font='600 12px sans-serif';ctx.fillText('พิกัดสถานที่ส่งงาน',58,curY+17);
+      ctx.fillStyle=fg2;ctx.font='400 11px sans-serif';
+      ctx.fillText(`${gpsData.time.toLocaleString('th-TH')}`,58,curY+32);
+      const addr=gpsData.addr||`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}`;
+      ctx.fillStyle=fg;ctx.font='400 12px sans-serif';
+      const maxW=W-120;const words=addr.split(' ');let line='';let ay=curY+50;
+      for(const w of words){
+        const test=line?line+' '+w:w;
+        if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line,58,ay);line=w;ay+=16;}
+        else line=test;
+      }
+      if(line)ctx.fillText(line,58,ay);
+      ctx.fillStyle=fg2;ctx.font='400 11px sans-serif';
+      ctx.fillText(`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}  (±${gpsData.acc}ม.)`,W-250,curY+17);
+      curY+=GPS_H;
+    }
+
+    ctx.fillStyle=brd;ctx.fillRect(0,curY+10,W,1);
+    const hdrBase=curY+14;
+    const hx=[28,72,460,600];
+    ctx.fillStyle=fg2;ctx.font='600 11px sans-serif';
+    ['#','ชื่อ-นามสกุล','สถานะ','โอที'].forEach((h,i)=>ctx.fillText(h,hx[i],hdrBase));
+    ctx.fillStyle=brd;ctx.fillRect(0,hdrBase+6,W,1);
+
+    members.forEach((m,i)=>{
+      const ry=hdrBase+8+i*ROW_H,ty=ry+ROW_H/2+6;
+      ctx.fillStyle=i%2===0?rowE:bg;ctx.fillRect(0,ry,W,ROW_H);
+      ctx.fillStyle=fg2;ctx.font='400 12px sans-serif';ctx.fillText(i+1,hx[0],ty);
+      ctx.fillStyle=fg;ctx.font='400 15px sans-serif';ctx.fillText(m.name||'-',hx[1],ty);
+      const sm={present:['มา',grn,grnT],absent:['ขาด',red,redT],leave:['ลา',amb,ambT]};
+      const[sl,sb,sf]=sm[m.status]||sm.present;
+      ctx.fillStyle=sb;ctx.beginPath();ctx.roundRect(hx[2],ry+7,44,ROW_H-14,7);ctx.fill();
+      ctx.fillStyle=sf;ctx.font='500 13px sans-serif';ctx.fillText(sl,hx[2]+12,ty);
+      const ot=parseFloat(m.ot)||0;
+      ctx.fillStyle=ot>0?acc:fg2;ctx.font=ot>0?'600 14px sans-serif':'400 14px sans-serif';
+      ctx.fillText(ot>0?(ot%1===0?ot:ot.toFixed(1))+' ชม.':'-',hx[3],ty);
+    });
+
+    const fy=hdrBase+8+Math.max(members.length,1)*ROW_H+16;
+    ctx.fillStyle=brd;ctx.fillRect(0,fy,W,1);
+    ctx.fillStyle=fg2;ctx.font='400 12px sans-serif';
+    ctx.fillText(`ทีม: ${team}   |   มา ${present} คน   ขาด/ลา ${absent} คน   โอทีรวม ${totalOT%1===0?totalOT:totalOT.toFixed(1)} ชั่วโมง`,28,fy+20);
+    const now=new Date();
+    ctx.fillText(`พิมพ์เมื่อ: ${now.toLocaleDateString('th-TH')} ${now.toLocaleTimeString('th-TH')}`,W-200,fy+20);
+
+    $('prev-wrap').style.display='block';
+    const dl=$('dlk');
+    dl.href=cv.toDataURL('image/png');
+    dl.download=`เวลาทำงาน_${team}_${gv('work-day')||'nodate'}.png`;
+    dl.style.display='flex';
+
+    // Mobile share
+    cv.toBlob(blob=>{
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],'attendance.png',{type:'image/png'})]})){
+        dl.onclick=async(e)=>{
+          e.preventDefault();
+          try{
+            await navigator.share({files:[new File([blob],'attendance.png',{type:'image/png'})],title:'บันทึกเวลาทำงาน',text:team});
+          }catch(err){
+            if(err.name!=='AbortError'){
+              const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download=dl.download;a.click();
+            }
+          }
+        };
+        dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>แชร์ภาพ PNG`;
+      }else{
+        dl.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:var(--green-txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด / แชร์ภาพ PNG`;
+      }
+    },'image/png');
+
+    showToast('สร้างภาพสำเร็จ');
+    setTimeout(()=>$('prev-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
+  });
+
+  // ── PWA Install ──
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();
+    deferredPrompt=e;
+    $('install-bar').classList.add('show');
+  });
+  $('btn-install').addEventListener('click',async()=>{
+    if(!deferredPrompt)return;
+    deferredPrompt.prompt();
+    const{outcome}=await deferredPrompt.userChoice;
+    deferredPrompt=null;
+    $('install-bar').classList.remove('show');
+    if(outcome==='accepted')showToast('ติดตั้งแอปสำเร็จ! 🎉');
+  });
+  $('install-close').addEventListener('click',()=>$('install-bar').classList.remove('show'));
+  window.addEventListener('appinstalled',()=>{
+    $('install-bar').classList.remove('show');
+    showToast('ติดตั้งแอปสำเร็จแล้ว');
+  });
+
+  // ── Google Sheet Config ──
+  const GAS_KEY='attendance_gas_cfg';
+  const GAS_CODE=`function doGet(e) {
+  try {
+    var p = e.parameter;
+    var sheetName = p.sheet || 'Sheet1';
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) sheet = ss.insertSheet(sheetName);
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['วันที่','','ชื่อสกุล','โอที','กลุ่ม','สถานที่']);
+      sheet.getRange(1,1,1,6)
+           .setFontWeight('bold')
+           .setBackground('#1A5FAA')
+           .setFontColor('#ffffff');
+    }
+    // A=วันที่  B=ว่าง  C=ชื่อสกุล  D=โอที  E=กลุ่ม  F=สถานที่
+    sheet.appendRow([p.date, '', p.name, Number(p.ot)||0, p.group, p.site]);
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error',msg:err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+  function showGasCopyOk(){
+    const el=$('gas-copy-ok');
+    if(el){el.textContent='คัดลอกแล้ว ✓';setTimeout(()=>{el.textContent='';},2000);}
+  }
+  window.showGasCopyOk=showGasCopyOk;
+
+  function loadCfg(){
+    try{const c=JSON.parse(localStorage.getItem(GAS_KEY)||'{}');
+      if(c.url)$('gas-url').value=c.url;
+      if(c.sheet)$('gas-sheet').value=c.sheet;
+    }catch(e){}
+    const ta=$('gas-code');if(ta)ta.value=GAS_CODE;
+  }
+  function saveCfg(){
+    const url=$('gas-url').value.trim();
+    const sheet=$('gas-sheet').value.trim();
+    if(!url){showToast('กรุณาใส่ URL ก่อน');return;}
+    localStorage.setItem(GAS_KEY,JSON.stringify({url,sheet}));
+    showToast('บันทึกการตั้งค่าแล้ว ✓');
+    $('sheet-cfg').classList.remove('open');
+  }
+  $('btn-save-cfg').addEventListener('click',saveCfg);
+  $('btn-cfg-toggle').addEventListener('click',()=>{
+    $('sheet-cfg').classList.toggle('open');
+  });
+  loadCfg();
+
+  // ── Send to Google Sheet (GET + query string, no-cors friendly) ──
+  $('btn-gsheet').addEventListener('click',async()=>{
+    const cfg=JSON.parse(localStorage.getItem(GAS_KEY)||'{}');
+    if(!cfg.url){
+      $('sheet-cfg').classList.add('open');
+      showToast('กรุณาตั้งค่า URL ก่อน');
+      return;
+    }
+    const teamName=gv('team-name')||'-';
+    const workSite=gv('work-site')||'-';
+    const workDay=gv('work-day')||new Date().getDate();
+    const workDate=String(workDay);
+    const sheetName=cfg.sheet||'Sheet1';
+
+    const presentMembers=members.filter(m=>m.status==='present');
+    if(presentMembers.length===0){
+      showToast('ไม่มีรายชื่อที่มาทำงาน');
+      return;
+    }
+
+    const btn=$('btn-gsheet');
+    const res=$('sheet-result');
+    btn.disabled=true;
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>กำลังส่งข้อมูล...`;
+    res.className='sheet-result';res.style.display='none';
+
+    try{
+      // ส่งแบบ GET query string ทีละแถว (วิธีเดียวที่ทำงานกับ GAS no-cors จริงๆ)
+      const sends=presentMembers.map(m=>{
+        const params=new URLSearchParams({
+          sheet: sheetName,
+          date: workDate,
+          name: m.name||'-',
+          ot: parseFloat(m.ot)||0,
+          group: teamName,
+          site: workSite
+        });
+        return fetch(`${cfg.url}?${params.toString()}`,{method:'GET',mode:'no-cors'});
+      });
+      await Promise.all(sends);
+      res.className='sheet-result ok';
+      res.textContent=`✓ ส่งข้อมูล ${presentMembers.length} คน วันที่ ${workDate} สำเร็จ`;
+      showToast('บันทึกลง Google Sheet สำเร็จ ✓');
+    }catch(err){
+      res.className='sheet-result err';
+      res.textContent='เชื่อมต่อไม่ได้: ตรวจสอบ URL และอินเทอร์เน็ต';
+      showToast('เชื่อมต่อไม่ได้');
+    }
+    btn.disabled=false;
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>บันทึกลง Google Sheet`;
+  });
+  // ── Team-name dropdown ──
+  const TEAM_KEY='attendance_teams';
+  let teamList=[];
+  function loadTeams(){try{teamList=JSON.parse(localStorage.getItem(TEAM_KEY)||'[]');}catch(e){teamList=[];}}
+  function saveTeams(){localStorage.setItem(TEAM_KEY,JSON.stringify(teamList));}
+  function showTeamDD(){
+    const inp=$('team-name');
+    const q=inp.value.toLowerCase();
+    const matches=teamList.filter(t=>!q||t.toLowerCase().includes(q));
+    const dd=$('dd-team');
+    if(!matches.length){dd.classList.remove('open');return;}
+    dd.innerHTML=matches.map(t=>`<div class="dd-item" data-n="${t.replace(/"/g,'&quot;')}">${t}</div>`).join('');
+    dd.querySelectorAll('.dd-item').forEach(item=>{
+      item.addEventListener('pointerdown',e=>{
+        e.preventDefault();
+        inp.value=item.dataset.n;
+        dd.classList.remove('open');
+        scheduleSave();
+      });
+    });
+    dd.classList.add('open');
+  }
+  $('team-name').addEventListener('focus',showTeamDD);
+  $('team-name').addEventListener('input',()=>{showTeamDD();scheduleSave();});
+  $('team-name').addEventListener('blur',()=>setTimeout(()=>$('dd-team').classList.remove('open'),150));
+  $('team-name').addEventListener('change',()=>{
+    const v=$('team-name').value.trim();
+    if(v&&!teamList.includes(v)){teamList.push(v);saveTeams();}
+    scheduleSave();
+  });
+  loadTeams();
+
+  // ── Import file ──
+  $('import-file').addEventListener('change',function(){
+    const file=this.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const lines=e.target.result.split(/\r?\n/);
+      let added=0,dup=0;
+      lines.forEach(line=>{
+        const name=line.replace(/,.*$/,'').trim(); // support CSV: take first column
+        if(!name)return;
+        if(roster.includes(name)){dup++;return;}
+        roster.push(name);added++;
+      });
+      renderRoster();refreshAllDD();scheduleSave();
+      showToast(`นำเข้า ${added} ชื่อ${dup?` (ซ้ำ ${dup})`:''}`);
+    };
+    reader.readAsText(file,'UTF-8');
+    this.value=''; // reset so same file can be picked again
+  });
+
+  // ── Navigation helpers ──
+  window.scrollToTop=()=>window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollToGPS=()=>document.querySelectorAll('.card')[1]?.scrollIntoView({behavior:'smooth',block:'start'});
+  window.scrollToTeam=()=>document.querySelectorAll('.card')[3]?.scrollIntoView({behavior:'smooth',block:'start'});
+  window.scrollToExport=()=>document.querySelectorAll('.card')[4]?.scrollIntoView({behavior:'smooth',block:'start'});
+
+  // ── Init ──
+  $('work-day').value=new Date().getDate();
+  const loaded=loadData();
+  if(!loaded||members.length===0){
+    addMember('','present',0);addMember('','present',0);addMember('','present',0);
+  }else{
+    render();
+  }
+})();
+</script>
+</body>
+</html>
