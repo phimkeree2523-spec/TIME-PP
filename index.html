@@ -244,41 +244,13 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
   </div>
 </div>
 
-<!-- พิกัด GPS -->
-<div class="card">
-  <div class="card-hdr">
-    <div class="chico"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-    <span class="ctitle">พิกัดสถานที่ส่งงาน</span>
-  </div>
-  <div class="gps-body">
-    <div class="gps-btn-row">
-      <button class="btn-gps" id="btn-gps">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" stroke-dasharray="2 3"/></svg>
-        ดึงพิกัดปัจจุบัน
-      </button>
-      <button class="btn-gps-clear" id="btn-gps-clear" style="display:none">ล้าง</button>
-    </div>
-    <div id="gps-status" class="gps-status" style="display:none"></div>
-    <div class="gps-result" id="gps-result">
-      <div class="gps-row">
-        <span class="gps-lbl">ที่อยู่</span>
-        <span class="gps-val" id="gps-addr">—</span>
-      </div>
-      <div class="gps-row">
-        <span class="gps-lbl">Lat/Lng</span>
-        <span class="gps-val" id="gps-coords">—</span>
-      </div>
-      <div class="gps-row">
-        <span class="gps-lbl">แผนที่</span>
-        <span class="gps-val"><a id="gps-link" href="#" target="_blank">เปิด Google Maps</a></span>
-      </div>
-      <div class="gps-row">
-        <span class="gps-lbl">เวลา</span>
-        <span class="gps-val" id="gps-time">—</span>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- GPS hidden elements (kept for data compatibility) -->
+<span id="gps-addr" style="display:none"></span>
+<span id="gps-coords" style="display:none"></span>
+<a id="gps-link" href="#" style="display:none"></a>
+<span id="gps-time" style="display:none"></span>
+<div id="gps-status" style="display:none"></div>
+<div id="gps-result" style="display:none"></div>
 
 <!-- รายชื่อประจำ -->
 <div class="card">
@@ -299,15 +271,65 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
       </label>
       <span style="font-size:11px;color:var(--text3);line-height:1.4">รองรับ .txt/.csv/.xlsx<br>ชื่อละ 1 บรรทัด (คอลัมน์แรก)</span>
     </div>
-    <div class="tags" id="rtags"></div>
+    <!-- Google Sheet Import -->
+    <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:.7rem">
+      <button id="btn-gsheet-toggle" style="display:flex;align-items:center;gap:.5rem;width:100%;padding:.6rem .8rem;background:var(--bg);border:none;color:var(--text2);font-size:13px;font-weight:500;font-family:'Sarabun',sans-serif;cursor:pointer;text-align:left">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E7E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
+        <span style="color:#1E7E34;font-weight:600">นำเข้าจาก Google Sheet</span>
+        <svg id="gsi-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="gsheet-import-panel" style="display:none;padding:.75rem;border-top:1px solid var(--border);background:var(--card)">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:.6rem;line-height:1.5">
+          ดึงรายชื่อจาก Google Sheet ผ่าน Apps Script<br>
+          คอลัมน์ A = ชื่อ, คอลัมน์ B = กลุ่ม
+        </div>
+        <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem">
+          <button id="btn-gsheet-load" style="padding:.5rem .9rem;background:#1E7E34;color:#fff;border:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:.35rem">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            โหลดรายชื่อ
+          </button>
+          <select id="gsheet-group-filter" style="flex:1;padding:.45rem .5rem;border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:13px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none">
+            <option value="">— ทุกกลุ่ม —</option>
+          </select>
+        </div>
+        <div id="gsheet-status" style="font-size:12px;min-height:1.2rem;color:var(--text2)"></div>
+        <button id="btn-gsheet-import" style="display:none;margin-top:.5rem;width:100%;padding:.6rem;background:#1E7E34;color:#fff;border:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer">✓ นำเข้ารายชื่อที่เลือก</button>
+      </div>
+    </div>
+    <div class="tags" id="rtags" style="display:none"></div>
+    <!-- มุมมองแบบกลุ่ม -->
+    <div id="rview-group" style="display:none"></div>
   </div>
-</div>
+  <!-- มุมมองกลุ่ม (ซ่อน) -->
+  <div id="rview-group-card" style="display:none;padding:.5rem .75rem .75rem"></div>
+  <div id="rview-chart-card" style="display:none;padding:.5rem .75rem .75rem"></div>
 
 <!-- รายชื่อทีมงาน -->
 <div class="card">
   <div class="card-hdr">
     <div class="chico"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="2.5"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="2.5"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="2.5"/></svg></div>
     <span class="ctitle">รายชื่อทีมงาน</span>
+  </div>
+  <!-- แถบเลือกกลุ่ม -->
+  <div id="group-picker-bar" style="padding:.6rem 1rem .55rem;border-bottom:1px solid var(--border);background:var(--accent-light)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.45rem">
+      <span style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.3px">📋 เลือกกลุ่มเพื่อเพิ่มลงตาราง</span>
+      <button id="btn-gpicker-reload" style="display:flex;align-items:center;gap:.25rem;padding:.25rem .55rem;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:999px;font-size:11px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        โหลด
+      </button>
+    </div>
+    <div id="gpicker-status" style="font-size:11px;color:var(--text2);margin-bottom:.4rem;min-height:1rem"></div>
+    <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem">
+      <select id="group-select-dd" style="flex:1;padding:.52rem .6rem;border:1.5px solid var(--accent);border-radius:var(--radius-xs);font-size:14px;font-family:'Sarabun',sans-serif;background:var(--card);color:var(--text);outline:none;font-weight:500">
+        <option value="">— กด "โหลด" ก่อน —</option>
+      </select>
+      <button id="btn-add-selected-group" style="padding:.52rem .9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;white-space:nowrap">＋ เพิ่ม</button>
+    </div>
+    <div style="display:flex;gap:.4rem">
+      <button id="btn-add-group-all" style="flex:1;padding:.42rem .6rem;background:transparent;color:var(--accent);border:1.5px solid var(--accent);border-radius:var(--radius-xs);font-size:12px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer">＋ เพิ่มทุกกลุ่ม</button>
+      <button id="btn-clear-mlist" style="padding:.42rem .7rem;background:transparent;color:var(--red-txt);border:1.5px solid var(--red-txt);border-radius:var(--radius-xs);font-size:12px;font-weight:500;font-family:'Sarabun',sans-serif;cursor:pointer">ล้างตาราง</button>
+    </div>
   </div>
   <div class="mem-hdr">
     <span>ชื่อ-นามสกุล</span><span>สถานะ</span><span>โอที</span><span></span>
@@ -408,10 +430,6 @@ canvas{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);
   <button class="bnav-item active" id="bnav-form" onclick="scrollToTop()">
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
     บันทึก
-  </button>
-  <button class="bnav-item" id="bnav-gps" onclick="scrollToGPS()">
-    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    พิกัด
   </button>
   <button class="bnav-item" id="bnav-team" onclick="scrollToTeam()">
     <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -533,12 +551,12 @@ self.addEventListener('fetch',e=>{
       if(d.gpsData&&d.gpsData.lat){
         gpsData=d.gpsData;
         gpsData.time=new Date(gpsData.time);
-        $('gps-coords').textContent=`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}  (±${gpsData.acc}ม.)`;
-        $('gps-time').textContent=gpsData.time.toLocaleString('th-TH');
-        $('gps-link').href=`https://www.google.com/maps?q=${gpsData.lat},${gpsData.lng}`;
-        $('gps-addr').textContent=gpsData.addr||'-';
-        $('gps-result').classList.add('show');
-        $('btn-gps-clear').style.display='block';
+        if($('gps-coords'))$('gps-coords').textContent=`${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}  (±${gpsData.acc}ม.)`;
+        if($('gps-time'))$('gps-time').textContent=gpsData.time.toLocaleString('th-TH');
+        if($('gps-link'))$('gps-link').href=`https://www.google.com/maps?q=${gpsData.lat},${gpsData.lng}`;
+        if($('gps-addr'))$('gps-addr').textContent=gpsData.addr||'-';
+        $('gps-result')?.classList.add('show');
+        if($('btn-gps-clear'))$('btn-gps-clear').style.display='block';
       }
       renderRoster();
       if(members.length)render();
@@ -566,15 +584,16 @@ self.addEventListener('fetch',e=>{
   updateTodayBadge();
 
   // ── GPS ──
-  $('btn-gps').addEventListener('click',fetchGPS);
-  $('btn-gps-clear').addEventListener('click',clearGPS);
+  $('btn-gps')?.addEventListener('click',fetchGPS);
+  $('btn-gps-clear')?.addEventListener('click',clearGPS);
 
   function fetchGPS(){
     if(!navigator.geolocation){showToast('เบราว์เซอร์ไม่รองรับ GPS');return;}
     const btn=$('btn-gps');
+    if(!btn)return;
     btn.classList.add('loading');
     btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg><span>กำลังดึงพิกัด<span class="dot-anim">...</span></span>`;
-    const st=$('gps-status');st.style.display='flex';st.className='gps-status';st.textContent='กำลังระบุตำแหน่ง...';
+    const st=$('gps-status');if(st){st.style.display='flex';st.className='gps-status';st.textContent='กำลังระบุตำแหน่ง...';}
 
     navigator.geolocation.getCurrentPosition(
       pos=>{
@@ -582,17 +601,17 @@ self.addEventListener('fetch',e=>{
         const acc=Math.round(pos.coords.accuracy);
         const now=new Date();
         gpsData={lat,lng,acc,time:now};
-        $('gps-coords').textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}  (±${acc}ม.)`;
-        $('gps-time').textContent=now.toLocaleString('th-TH');
-        $('gps-link').href=`https://www.google.com/maps?q=${lat},${lng}`;
-        $('gps-result').classList.add('show');
-        $('btn-gps-clear').style.display='block';
-        st.style.display='none';
-        $('gps-addr').textContent='กำลังค้นหาที่อยู่...';
+        if($('gps-coords'))$('gps-coords').textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}  (±${acc}ม.)`;
+        if($('gps-time'))$('gps-time').textContent=now.toLocaleString('th-TH');
+        if($('gps-link'))$('gps-link').href=`https://www.google.com/maps?q=${lat},${lng}`;
+        $('gps-result')?.classList.add('show');
+        if($('btn-gps-clear'))$('btn-gps-clear').style.display='block';
+        if(st)st.style.display='none';
+        if($('gps-addr'))$('gps-addr').textContent='กำลังค้นหาที่อยู่...';
         fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=th`)
           .then(r=>r.json())
-          .then(d=>{const addr=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;$('gps-addr').textContent=addr;gpsData.addr=addr;scheduleSave();})
-          .catch(()=>{const addr=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;$('gps-addr').textContent=addr;gpsData.addr=addr;scheduleSave();});
+          .then(d=>{const addr=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;if($('gps-addr'))$('gps-addr').textContent=addr;gpsData.addr=addr;scheduleSave();})
+          .catch(()=>{const addr=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;if($('gps-addr'))$('gps-addr').textContent=addr;gpsData.addr=addr;scheduleSave();});
         resetGPSBtn();showToast('ดึงพิกัดสำเร็จ');scheduleSave();
       },
       err=>{
@@ -600,7 +619,7 @@ self.addEventListener('fetch',e=>{
         if(err.code===1)msg='ปฏิเสธการเข้าถึง GPS กรุณาอนุญาตในเบราว์เซอร์';
         else if(err.code===2)msg='ไม่พบสัญญาณ GPS';
         else if(err.code===3)msg='หมดเวลาดึงพิกัด ลองใหม่อีกครั้ง';
-        st.style.display='flex';st.className='gps-status err';st.textContent=msg;
+        if(st){st.style.display='flex';st.className='gps-status err';st.textContent=msg;}
         resetGPSBtn();showToast(msg);
       },
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
@@ -612,15 +631,19 @@ self.addEventListener('fetch',e=>{
   }
   function clearGPS(){
     gpsData=null;
-    $('gps-result').classList.remove('show');
-    $('btn-gps-clear').style.display='none';
-    $('gps-status').style.display='none';
-    $('gps-addr').textContent='—';$('gps-coords').textContent='—';
-    $('gps-time').textContent='—';$('gps-link').href='#';
+    $('gps-result')?.classList.remove('show');
+    if($('btn-gps-clear'))$('btn-gps-clear').style.display='none';
+    if($('gps-status'))$('gps-status').style.display='none';
+    if($('gps-addr'))$('gps-addr').textContent='—';
+    if($('gps-coords'))$('gps-coords').textContent='—';
+    if($('gps-time'))$('gps-time').textContent='—';
+    if($('gps-link'))$('gps-link').href='#';
     scheduleSave();
   }
 
   // ── Roster ──
+  let rosterView='tags'; // 'tags' | 'group' | 'chart'
+
   function addRoster(){
     const inp=$('ri'),name=inp.value.trim();
     if(!name)return;
@@ -630,12 +653,105 @@ self.addEventListener('fetch',e=>{
   $('ri').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addRoster();}});
   $('rbtn').addEventListener('pointerdown',e=>{e.preventDefault();addRoster();});
   function removeRoster(name){roster=roster.filter(r=>r!==name);renderRoster();refreshAllDD();scheduleSave();}
+
   function renderRoster(){
+    // tags view
     $('rtags').innerHTML=roster.map(r=>`<span class="tag">${r}<button class="tag-del" data-n="${r}">×</button></span>`).join('');
     $('rtags').querySelectorAll('.tag-del').forEach(b=>{
       b.addEventListener('pointerdown',e=>{e.preventDefault();removeRoster(b.dataset.n);});
     });
+    renderRosterGrouped();
+    renderRosterChart();
+    applyRosterView();
   }
+
+  function getGroupedRoster(){
+    const gsd=window.gsDataGlobal||[];
+    if(!gsd.length)return null; // ไม่มีข้อมูลกลุ่ม
+    const map={};
+    gsd.forEach(r=>{
+      const g=r.group||'ไม่ระบุกลุ่ม';
+      if(!map[g])map[g]=[];
+      if(roster.includes(r.name))map[g].push(r.name);
+    });
+    // ชื่อใน roster ที่ไม่อยู่ใน gsd
+    const inGsd=new Set(gsd.map(r=>r.name));
+    const orphan=roster.filter(r=>!inGsd.has(r));
+    if(orphan.length)map['อื่นๆ']=(map['อื่นๆ']||[]).concat(orphan);
+    return map;
+  }
+
+  const GRP_COLORS=['#3B6FD4','#1E7E34','#B45309','#7C3AED','#0E7490','#BE185D','#92400E','#065F46','#1D4ED8','#6D28D9','#9D174D','#155E75','#991B1B'];
+
+  function renderRosterGrouped(){
+    const el=$('rview-group-card');
+    const map=getGroupedRoster();
+    if(!map){
+      el.innerHTML=`<div style="color:var(--text3);font-size:12px;text-align:center;padding:.5rem">โหลดข้อมูลจาก Google Sheet ก่อนเพื่อดูมุมมองกลุ่ม</div>`;
+      return;
+    }
+    const groups=Object.keys(map).filter(g=>map[g].length>0);
+    if(!groups.length){el.innerHTML=`<div style="color:var(--text3);font-size:12px;text-align:center">ยังไม่มีรายชื่อ</div>`;return;}
+    el.innerHTML=groups.map((g,gi)=>{
+      const col=GRP_COLORS[gi%GRP_COLORS.length];
+      const names=map[g];
+      return `<div style="margin-bottom:.65rem">
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
+          <span style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0;display:inline-block"></span>
+          <span style="font-size:12px;font-weight:700;color:${col}">${g}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:auto">${names.length} คน</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.28rem;padding-left:.8rem">
+          ${names.map(n=>`<span style="padding:.2rem .55rem;background:${col}18;color:${col};border:1px solid ${col}40;border-radius:999px;font-size:12px;font-weight:500">${n}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderRosterChart(){
+    const el=$('rview-chart-card');
+    const map=getGroupedRoster();
+    if(!map){
+      el.innerHTML=`<div style="color:var(--text3);font-size:12px;text-align:center;padding:.5rem">โหลดข้อมูลจาก Google Sheet ก่อนเพื่อดูสัดส่วน</div>`;
+      return;
+    }
+    const groups=Object.keys(map).filter(g=>map[g].length>0).sort((a,b)=>map[b].length-map[a].length);
+    const total=groups.reduce((s,g)=>s+map[g].length,0);
+    if(!total){el.innerHTML=`<div style="color:var(--text3);font-size:12px;text-align:center">ยังไม่มีรายชื่อ</div>`;return;}
+    el.innerHTML=`
+      <div style="font-size:11px;color:var(--text2);margin-bottom:.5rem;font-weight:600">ทั้งหมด ${total} คน / ${groups.length} กลุ่ม</div>
+      ${groups.map((g,gi)=>{
+        const col=GRP_COLORS[gi%GRP_COLORS.length];
+        const cnt=map[g].length;
+        const pct=Math.round(cnt/total*100);
+        return `<div style="margin-bottom:.45rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.18rem">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">${g}</span>
+            <span style="font-size:12px;color:var(--text2)">${cnt} คน <span style="color:${col};font-weight:700">${pct}%</span></span>
+          </div>
+          <div style="height:9px;background:var(--border);border-radius:999px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${col};border-radius:999px;transition:width .4s ease"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  }
+
+  function applyRosterView(){
+    $('rtags').style.display='none'; // ซ่อน tags ตลอด
+    $('rview-group-card').style.display=rosterView==='group'?'':'none';
+    $('rview-chart-card').style.display=rosterView==='chart'?'':'none';
+    document.querySelectorAll('.rview-btn').forEach(b=>{
+      const active=b.dataset.v===rosterView;
+      b.style.background=active?'var(--accent)':'var(--bg)';
+      b.style.color=active?'#fff':'var(--text2)';
+      b.style.borderColor=active?'var(--accent)':'var(--border2)';
+    });
+  }
+
+  document.querySelectorAll('.rview-btn').forEach(b=>{
+    b.addEventListener('click',()=>{rosterView=b.dataset.v;renderRoster();});
+  });
 
   // ── Members ──
   function addMember(n='',s='present',o=0){members.push({id:++seq,name:n,status:s,ot:o});render();scheduleSave();}
@@ -646,16 +762,33 @@ self.addEventListener('fetch',e=>{
   function getSugg(curId,q){
     const lq=q.toLowerCase();
     const used=[...new Set(members.filter(m=>m.id!==curId&&m.name.trim()).map(m=>m.name.trim()))];
+    // กรองตามกลุ่มที่เลือกใน group-select-dd
+    const selGroup=($('group-select-dd')&&$('group-select-dd').value)||'';
+    // หา gsData ที่ accessible (expose ผ่าน window.gsDataGlobal)
+    const gsd=window.gsDataGlobal||[];
+    let rosterFiltered;
+    if(selGroup&&gsd.length){
+      // แสดงเฉพาะชื่อในกลุ่มที่เลือก
+      const groupNames=gsd.filter(r=>r.group===selGroup).map(r=>r.name);
+      rosterFiltered=groupNames.filter(r=>!lq||r.toLowerCase().includes(lq));
+    } else {
+      rosterFiltered=roster.filter(r=>!lq||r.toLowerCase().includes(lq));
+    }
     return{
-      fromRoster:roster.filter(r=>!lq||r.toLowerCase().includes(lq)),
-      fromUsed:used.filter(r=>!roster.includes(r)&&(!lq||r.toLowerCase().includes(lq)))
+      selGroup,
+      fromRoster:rosterFiltered,
+      fromUsed:used.filter(r=>!rosterFiltered.includes(r)&&(!lq||r.toLowerCase().includes(lq)))
     };
   }
   function buildDDHTML(id,q){
-    const{fromRoster,fromUsed}=getSugg(id,q);
+    const{selGroup,fromRoster,fromUsed}=getSugg(id,q);
     if(!fromRoster.length&&!fromUsed.length)return'';
     let h='';
-    if(fromRoster.length){h+=`<div class="dd-sec">รายชื่อประจำ</div>`;h+=fromRoster.map(r=>`<div class="dd-item" data-n="${r.replace(/"/g,'&quot;')}">${r}</div>`).join('');}
+    if(fromRoster.length){
+      const label=selGroup?`กลุ่ม: ${selGroup}`:'รายชื่อประจำ';
+      h+=`<div class="dd-sec">${label}</div>`;
+      h+=fromRoster.map(r=>`<div class="dd-item" data-n="${r.replace(/"/g,'&quot;')}">${r}</div>`).join('');
+    }
     if(fromUsed.length){h+=`<div class="dd-sec">ใช้ล่าสุด</div>`;h+=fromUsed.map(r=>`<div class="dd-item" data-n="${r.replace(/"/g,'&quot;')}">${r}</div>`).join('');}
     return h;
   }
@@ -672,6 +805,8 @@ self.addEventListener('fetch',e=>{
   }
   function hideDD(id){const dd=$('dd-'+id);if(dd)dd.classList.remove('open');}
   function pickName(id,name){
+    const dup=members.find(m=>m.id!==id&&m.name.trim()===name.trim());
+    if(dup){showToast('⚠️ "'+name+'" มีในรายการแล้ว');return;}
     const m=members.find(m=>m.id===id);if(m)m.name=name;
     const inp=$('ni-'+id);if(inp)inp.value=name;
     hideDD(id);updateSum();refreshAllDD();scheduleSave();
@@ -699,7 +834,21 @@ self.addEventListener('fetch',e=>{
       const inp=$('ni-'+m.id),sel=$('st-'+m.id),oti=$('ot-'+m.id),del=$('del-'+m.id);
       inp.addEventListener('focus',()=>showDD(m.id));
       inp.addEventListener('input',()=>{updateMember(m.id,'name',inp.value);showDD(m.id);});
-      inp.addEventListener('blur',()=>setTimeout(()=>hideDD(m.id),150));
+      inp.addEventListener('blur',()=>{
+        setTimeout(()=>hideDD(m.id),150);
+        const v=inp.value.trim();
+        if(v){
+          const dup=members.find(d=>d.id!==m.id&&d.name.trim()===v);
+          if(dup){
+            showToast('⚠️ "'+v+'" มีในรายการแล้ว');
+            inp.style.borderColor='var(--red-txt)';
+            inp.style.background='var(--red-bg)';
+          } else {
+            inp.style.borderColor='';
+            inp.style.background='';
+          }
+        }
+      });
       sel.addEventListener('change',()=>updateMember(m.id,'status',sel.value));
       oti.addEventListener('input',()=>updateMember(m.id,'ot',parseFloat(oti.value)||0));
       del.addEventListener('pointerdown',e=>{e.preventDefault();removeMember(m.id);});
@@ -1034,6 +1183,10 @@ self.addEventListener('fetch',e=>{
     }
     const allFilled=members.some(m=>m.name.trim());
     if(!allFilled){showToast('กรุณากรอกรายชื่อก่อนบันทึก');return;}
+    // เช็คชื่อซ้ำก่อนบันทึก
+    const names=members.map(m=>m.name.trim()).filter(Boolean);
+    const dupName=names.find((n,i)=>names.indexOf(n)!==i);
+    if(dupName){showToast('⚠️ มีชื่อซ้ำ: "'+dupName+'" กรุณาแก้ไขก่อนบันทึก');return;}
 
     const btn=$('btn-gsheet');
     const res=$('sheet-result');
@@ -1121,6 +1274,203 @@ self.addEventListener('fetch',e=>{
   });
   loadTeams();
 
+  // ── Google Sheet Import ──
+  (function(){
+    let gsData=[]; // [{name, group}]
+    const GAS_URL='https://script.google.com/macros/s/AKfycbyxW8FL_PpaBP6lhUH3ZgM8O7MsE-jPhpEVLsCeaDoQrYZQ2pUQ7a2ctGiiPqtP3FD9yA/exec';
+
+    function togglePanel(){
+      const panel=$('gsheet-import-panel');
+      const arrow=$('gsi-arrow');
+      const open=panel.style.display==='none';
+      panel.style.display=open?'block':'none';
+      arrow.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+    }
+    $('btn-gsheet-toggle').addEventListener('click',togglePanel);
+
+    function setStatus(msg,color){
+      const el=$('gsheet-status');
+      el.textContent=msg;
+      el.style.color=color||'var(--text2)';
+    }
+
+    function populateGroupFilter(groups){
+      const sel=$('gsheet-group-filter');
+      const prev=sel.value;
+      sel.innerHTML='<option value="">— ทุกกลุ่ม —</option>';
+      groups.forEach(g=>{
+        const opt=document.createElement('option');
+        opt.value=g;opt.textContent=g;
+        sel.appendChild(opt);
+      });
+      if(prev&&groups.includes(prev))sel.value=prev;
+      renderGroupPicker(groups);
+    }
+
+    // ── Group Picker Bar (in รายชื่อทีมงาน card) ──
+    function renderGroupPicker(groups){
+      const dd=$('group-select-dd');
+      const st=$('gpicker-status');
+      if(!groups||groups.length===0){
+        dd.innerHTML='<option value="">— ไม่พบข้อมูลกลุ่ม —</option>';
+        if(st)st.textContent='';
+        return;
+      }
+      dd.innerHTML='<option value="">— เลือกกลุ่ม —</option>';
+      groups.forEach(g=>{
+        const opt=document.createElement('option');
+        opt.value=g;opt.textContent=g;
+        dd.appendChild(opt);
+      });
+      if(st)st.textContent=`✓ พบ ${gsData.length} ชื่อ / ${groups.length} กลุ่ม`;
+    }
+
+    // ปุ่มโหลดใน group-picker-bar
+    $('btn-gpicker-reload').addEventListener('click',function(){
+      $('btn-gsheet-load').click();
+    });
+
+    // เมื่อเลือกกลุ่มจาก dropdown → เปลี่ยนชื่อทีมอัตโนมัติ + refresh ช่อง dropdown
+    document.addEventListener('change',function(e){
+      if(e.target.id!=='group-select-dd')return;
+      const g=e.target.value;
+      if(g){$('team-name').value=g;scheduleSave();}
+      refreshAllDD();
+    });
+
+    $('btn-add-selected-group').addEventListener('click',function(){
+      const g=$('group-select-dd').value;
+      addGroupToMembers(g);
+    });
+
+    function addGroupToMembers(groupName){
+      const toAdd=groupName
+        ? gsData.filter(r=>r.group===groupName).map(r=>r.name)
+        : gsData.map(r=>r.name);
+      let added=0;
+      toAdd.forEach(name=>{
+        if(!name)return;
+        if(members.find(m=>m.name.trim()===name.trim()))return;
+        addMember(name,'present',0);
+        added++;
+      });
+      if(added>0){
+        // ตั้งชื่อทีมตามกลุ่มที่เพิ่ม
+        if(groupName){$('team-name').value=groupName;scheduleSave();}
+        showToast(`เพิ่ม ${added} คน${groupName?' ('+groupName+')':''} ลงตาราง`);
+      } else {
+        showToast('มีรายชื่อเหล่านี้อยู่แล้ว');
+      }
+    }
+
+    // wire "เพิ่มทุกกลุ่ม" and "ล้างตาราง"
+    $('btn-add-group-all').addEventListener('click',()=>addGroupToMembers(''));
+    $('btn-clear-mlist').addEventListener('click',()=>{
+      if(!confirm('ล้างรายชื่อทีมงานทั้งหมด?'))return;
+      members=[];seq=0;render();scheduleSave();showToast('ล้างตารางแล้ว');
+    });
+
+    function updateImportBtn(){
+      const filter=$('gsheet-group-filter').value;
+      const filtered=filter?gsData.filter(r=>r.group===filter):gsData;
+      const btn=$('btn-gsheet-import');
+      if(filtered.length>0){
+        btn.style.display='block';
+        btn.textContent=`✓ นำเข้า ${filtered.length} ชื่อ${filter?' (กลุ่ม: '+filter+')':''}`;
+      }else{
+        btn.style.display='none';
+      }
+    }
+
+    $('gsheet-group-filter').addEventListener('change',updateImportBtn);
+
+    function fetchViaJsonp(url,timeout){
+      return new Promise((resolve,reject)=>{
+        const cbName='_gs_cb_'+Date.now();
+        const timer=setTimeout(()=>{
+          delete window[cbName];
+          s&&s.remove();
+          reject(new Error('timeout'));
+        },timeout||12000);
+        window[cbName]=function(data){
+          clearTimeout(timer);
+          delete window[cbName];
+          s&&s.remove();
+          resolve(data);
+        };
+        const s=document.createElement('script');
+        s.src=url+(url.includes('?')?'&':'?')+'callback='+cbName;
+        s.onerror=()=>{clearTimeout(timer);delete window[cbName];reject(new Error('load error'));};
+        document.head.appendChild(s);
+      });
+    }
+
+    async function doLoadNames(silent){
+      if(!silent)setStatus('⏳ กำลังโหลดข้อมูล...');
+      else setStatus('⏳ กำลังโหลดรายชื่อ...');
+      $('btn-gsheet-load').disabled=true;
+      try{
+        let rows=null;
+        try{
+          const res=await fetch(GAS_URL+'?action=getNames');
+          if(res.ok){
+            const json=await res.json();
+            if(Array.isArray(json))rows=json;
+            else if(json&&Array.isArray(json.data))rows=json.data;
+          }
+        }catch(e){}
+
+        if(!rows){
+          const data=await fetchViaJsonp(GAS_URL+'?action=getNames',12000);
+          if(Array.isArray(data))rows=data;
+          else if(data&&Array.isArray(data.data))rows=data.data;
+          else rows=[];
+        }
+
+        gsData=[];
+        const groups=new Set();
+        rows.forEach(row=>{
+          let name='',group='';
+          if(Array.isArray(row)){name=String(row[0]||'').trim();group=String(row[1]||'').trim();}
+          else{name=String(row.name||row['ชื่อ']||row.Name||'').trim();group=String(row.group||row['กลุ่ม']||row.Group||'').trim();}
+          if(!name)return;
+          gsData.push({name,group});
+          if(group)groups.add(group);
+        });
+
+        if(gsData.length===0){
+          setStatus('ไม่พบข้อมูลในชีต','var(--red-txt)');
+          $('btn-gsheet-import').style.display='none';
+          $('btn-gsheet-load').disabled=false;
+          return;
+        }
+        window.gsDataGlobal=gsData;
+        populateGroupFilter([...groups].sort());
+        renderRoster();
+        setStatus(`✓ พบ ${gsData.length} รายชื่อ${groups.size?' / '+groups.size+' กลุ่ม':''}`,'var(--green-txt)');
+        updateImportBtn();
+        if(silent)showToast(`โหลดรายชื่อแล้ว ${gsData.length} คน ✓`);
+      }catch(err){
+        setStatus(silent?'โหลดอัตโนมัติไม่สำเร็จ — กด "โหลด" เพื่อลองใหม่':'โหลดไม่สำเร็จ: '+err.message,'var(--red-txt)');
+        $('btn-gsheet-import').style.display='none';
+      }
+      $('btn-gsheet-load').disabled=false;
+    }
+
+    $('btn-gsheet-load').addEventListener('click',function(){doLoadNames(false);});
+
+    // ── Auto-load on startup ──
+    setTimeout(()=>doLoadNames(true),800);
+
+    $('btn-gsheet-import').addEventListener('click',function(){
+      const filter=$('gsheet-group-filter').value;
+      const toImport=(filter?gsData.filter(r=>r.group===filter):gsData).map(r=>r.name);
+      processNames(toImport);
+      $('gsheet-import-panel').style.display='none';
+      $('gsi-arrow').style.transform='rotate(0deg)';
+    });
+  })();
+
   // ── Import file ──
   function processNames(names){
     let added=0,dup=0;
@@ -1182,7 +1532,6 @@ self.addEventListener('fetch',e=>{
   window.scrollToTeam=()=>document.querySelectorAll('.card')[3]?.scrollIntoView({behavior:'smooth',block:'start'});
   window.scrollToExport=()=>document.querySelectorAll('.card')[4]?.scrollIntoView({behavior:'smooth',block:'start'});
 
-  
   // ── Init ──
   $('work-day').value=new Date().getDate();
   updateRestoreBtn();
